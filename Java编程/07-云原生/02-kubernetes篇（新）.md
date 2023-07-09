@@ -1,6 +1,6 @@
 # kubernetes 篇
 
-## 基础篇
+## 基础篇：Kubernetes 简介与核心概念
 
 ### Kubernetes 简介
 
@@ -84,11 +84,11 @@ Kubernetes 的各个组件之间通过 API Server 进行交互，实现集群的
 
 这些组件的协作和交互构成了 Kubernetes 的完整体系结构，支持各种容器化应用的部署、管理和扩展。
 
-### 安装和配置 Kubernetes
+### Kubernetes 的安装和配置
 
-#### 前提要求
+#### Kubernetes 部署前期准备
 
-##### Kubernetes 和 Docker 之间的版本对应关系
+##### Docker 和 Kubernetes 版本对应关系
 
 [对应关系](https://github.com/kubernetes/kubernetes/tree/master/CHANGELOG)：Docker 的版本是 v19.x ，对应的 Kubernetes 的版本是 v1.21 。
 
@@ -1201,6 +1201,8 @@ kubectl run nginx-pod --image=nginx --dry-run=client -o yaml > demo.yaml
 - **Job**：Job 是一次性任务，它创建一个或多个 Pod 来完成任务，并确保任务成功完成后自动终止。
 - **CronJob**：CronJob 是定时任务，它基于 Cron 表达式创建一个 Job，用于在指定的时间间隔内执行任务。
 
+### 标签、选择器和命名空间
+
 #### 对象名称规范
 
 Kubernetes REST API 中，所有的对象都是通过 `name` 和 `UID` 唯一性的确定。
@@ -1554,7 +1556,7 @@ metadata:
 
 ###  容器配置与资源管理
 
-#### 镜像和私有库
+#### 镜像和私有镜像库的使用
 
 ##### 下载和使用镜像
 
@@ -1680,7 +1682,7 @@ spec:
 
 注意：需要将 secret 的用户名和密码设置为自己的，而且在拉取阿里云私有镜像的时候设置为自己的镜像。
 
-#### 环境变量与启动命令
+#### 环境变量和启动命令的配置
 
 ##### 容器的环境变量配置
 
@@ -1732,7 +1734,7 @@ spec:
       args: ["Hello, Kubernetes!"]
 ```
 
-#### 资源限额管理
+#### 容器资源限额管理和配额设置
 
 资源限额管理是 Kubernetes 中重要的一部分，它可以帮助你控制和管理容器的资源使用量。下面我将为你重新讲解资源限额管理，并提供具体的示例来帮助你更好地理解。
 
@@ -3497,25 +3499,153 @@ spec:
 
 在上述示例中，我们使用 Pod 反亲和性调度将相同标签为 `app: my-app` 的多个副本调度到不同的节点上。通过设置 `weight` 属性为 100，确保优先选择不在同一节点上的副本。
 
-### 控制器：ReplicaSet 和 Deployment
+### Kubernetes 控制器：应用程序的调度与管理
+
+#### 控制器概述
+
+##### 控制器的作用和功能
+
+##### 控制器的分类和特点
+
+##### 控制器的核心概念和机制
+
+#### ReplicaSet 控制器
+
+##### ReplicaSet 控制器的介绍和功能
+
+##### 管理和操作 ReplicaSet
+
+###### 创建和部署 ReplicaSet
+
+###### 扩容和缩容 ReplicaSet
+
+###### 更新和滚动更新 ReplicaSet
+
+###### 删除和清理 ReplicaSet
+
+##### 示例：使用 ReplicaSet 控制器管理应用程序副本集
+
+#### Deployment 控制器
+
+##### Deployment 控制器的介绍和功能
+
+##### 管理和操作 Deployment
+
+###### 创建和部署 Deployment
+
+###### 扩容和缩容 Deployment
+
+###### 更新和回滚 Deployment
+
+###### 暂停和继续 Deployment
+
+###### 删除和清理 Deployment
+
+##### 示例：使用 Deployment 控制器进行应用程序管理和版本控制
+
+#### DaemonSet 控制器
+
+##### DaemonSet 控制器的介绍和功能
+
+##### 管理和操作 DaemonSet
+
+###### 创建和部署 DaemonSet
+
+###### 更新和滚动更新 DaemonSet
+
+###### 删除和清理 DaemonSet
+
+##### 示例：使用 DaemonSet 控制器管理守护进程应用程序
+
+#### StatefulSet 控制器
+
+##### StatefulSet 控制器的介绍和功能
+
+##### 管理和操作 StatefulSet
+
+###### 创建和部署 StatefulSet
+
+###### 扩容和缩容 StatefulSet
+
+###### 更新和回滚 StatefulSet
+
+###### 删除和清理 StatefulSet
+
+##### 示例：使用 StatefulSet 控制器管理有状态应用程序
+
+#### Job 控制器
+
+##### Job 控制器的介绍和功能
+
+##### 管理和操作 Job
+
+###### 创建和运行 Job
+
+###### 查看和监控 Job 状态
+
+###### 清理和删除 Job
+
+##### 示例：使用 Job 控制器运行一次性任务和批处理作业
+
+#### CronJob 控制器
+
+##### CronJob 控制器的介绍和功能
+
+##### 管理和操作 CronJob
+
+###### 创建和调度 CronJob
+
+###### 查看和监控 CronJob 状态
+
+###### 更新和删除 CronJob
+
+##### 示例：使用 CronJob 控制器定时调度任务
+
+#### 水平自动伸缩（HPA）控制器
+
+##### HPA 控制器的介绍和功能
+
+##### 管理和操作 HPA
+
+###### 创建和配置 HPA
+
+###### 监控和自动伸缩 Pod 数量
+
+###### 更新和删除 HPA
+
+##### 示例：使用 HPA 控制器进行自动伸缩和负载管理
 
 ### 服务发现与负载均衡
 
-### 存储管理和卷
+#### 服务发现的概念和实现
 
-### 配置管理和 ConfigMap
+#### 使用 Service 进行内部和外部访问
 
-### 密钥管理和 Secret
+### 存储管理和卷配置
 
-### 网络和服务通信
+#### 存储的概念和类型
 
-### 安全性和权限控制
+#### 使用 ConfigMap 进行配置管理
+
+#### 使用 Secret 进行密钥管理
+
+### 网络和安全性
+
+#### Kubernetes 网络和通信的配置
+
+#### 安全性和权限控制的实施
 
 ### 监控和日志管理
 
-### 调度器和节点管理
+#### 监控 Kubernetes 集群和应用程序
+
+#### 日志管理和分析的方法
 
 ### 扩展和自动化
+
+#### 扩展 Kubernetes 集群的方法和工具
+
+#### 自动化运维和管理 Kubernetes
 
 ## 核心篇
 
