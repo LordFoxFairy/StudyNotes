@@ -1484,7 +1484,7 @@ kubectl get pod -n kube-system
 kubectl run nginx --image=nginx:latest --port=80 --namespace dev 
 ```
 
-###### 查看Pod基本信息 
+###### 查看Pod基本信息
 
 ```bash
 kubectl get pods -n dev
@@ -1551,11 +1551,10 @@ spec:
 当前有两种Label Selector：
 
 - **基于等式的Label Selector**
-
   - `name = slave` 选择所有包含Label中key="name"且value="slave"的对象
-
+  
   - `env != production`选择所有包括Label中的key="env"且value不等于"production"的对象
-
+  
 - **基于集合的Label Selector**
   - `name in (master, slave)` 选择所有包含Label中的key="name"且value="master"或"slave"的对象
   - `name not in (frontend)` 选择所有包含Label中的key="name"且value不等于"frontend"的对象
@@ -3421,7 +3420,7 @@ spec:
 
 ###### 定向调度【强制策略】
 
-###### NodeName
+- NodeName
 
 这种方式，其实是直接跳过Scheduler的调度逻辑，直接将Pod调度到指定名称的节点。
 
@@ -3439,7 +3438,7 @@ spec:
   nodeName: node1 # 指定调度到node1节点上
 ```
 
-###### NodeSelector
+- NodeSelector
 
 NodeSelector用于将pod调度到添加了指定标签的node节点上。
 
