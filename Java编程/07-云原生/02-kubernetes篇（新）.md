@@ -2130,7 +2130,7 @@ spec:
 使用配置文件或命令创建服务，并查看已存在的服务。示例：
 
 ```bash
-shellCopy code# 创建服务
+# 创建服务
 kubectl create -f service.yaml
 
 # 查看服务
@@ -3010,7 +3010,7 @@ kubectl get deployments -l <label-key>=<label-value>
 要更新已经存在对象上的标签，可以使用以下命令：
 
 ```
-shellCopy code# 更新 Pod 上的标签
+# 更新 Pod 上的标签
 kubectl label pods <pod-name> <label-key>=<new-label-value> --overwrite
 
 # 更新 Deployment 上的标签
@@ -3024,7 +3024,7 @@ kubectl label deployment <deployment-name> <label-key>=<new-label-value> --overw
 要查看对象的标签，可以使用以下命令：
 
 ```
-shellCopy code# 查看 Pod 上的标签
+# 查看 Pod 上的标签
 kubectl get pods --show-labels
 
 # 查看 Deployment 上的标签
@@ -3038,7 +3038,7 @@ kubectl get deployments --show-labels
 要使用选择器进行标签筛选，可以在 `kubectl` 命令中使用 `-l` 或 `--selector` 参数。以下是一些常见的使用选择器进行标签筛选的命令示例：
 
 ```
-shellCopy code# 获取具有特定标签的 Pod
+# 获取具有特定标签的 Pod
 kubectl get pods -l <label-key>=<label-value>
 
 # 获取具有多个标签的 Pod
@@ -3503,75 +3503,779 @@ spec:
 
 #### 控制器概述
 
+在 Kubernetes 中，控制器是负责管理和控制应用程序的关键组件。它们用于确保所管理的资源处于期望的状态，并根据实际情况进行调整，以实现应用程序的预期行为。在之前的章节中，我们已经学习了 Pod，它是 Kubernetes 中的最小调度单位。现在，我们将进一步学习各种控制器，它们用于**管理和调度 Pod 资源**。
+
 ##### 控制器的作用和功能
+
+控制器的主要作用是管理和控制应用程序的生命周期。它们负责创建、部署、调度、更新和删除应用程序的相关资源，以确保应用程序在集群中的运行状态符合预期。控制器可以根据需求自动进行资源的扩缩，以满足应用程序的负载变化。它们还负责监控应用程序的健康状态，并根据需要进行故障恢复。
 
 ##### 控制器的分类和特点
 
+控制器根据其功能和使用方式可以分为多种类型。常见的控制器类型包括 ReplicaSet、Deployment、DaemonSet、StatefulSet、Job 和 CronJob 等。每种控制器都有其独特的特点和适用场景，可以满足不同应用程序的需求。
+
+以下是一些常见控制器的特点：
+
+- **ReplicaSet**：用于创建和管理多个 Pod 的副本，确保指定数量的 Pod 在集群中运行。
+- **Deployment**：提供了对应用程序的声明式管理，支持滚动更新、回滚和扩缩容等操作。
+- **DaemonSet**：确保集群中的每个节点运行一个 Pod 实例，常用于运行守护进程应用程序。
+- **StatefulSet**：用于管理有状态应用程序，提供唯一标识和稳定网络标识符。
+- **Job**： 用于运行一次性任务或批处理作业，并确保任务完成后终止。
+- **CronJob**： 基于时间表调度任务的控制器，支持按照指定时间间隔运行任务。
+
 ##### 控制器的核心概念和机制
+
+控制器的核心概念包括目标对象、期望状态和实际状态的对比以及调谐机制。控制器通过监控目标对象的变化，并根据期望状态和实际状态的对比来决定是否需要采取调整措施。调谐机制用于控制器的自动调节和自我修复能力，确保应用程序持续处于所期望的状态。
 
 #### ReplicaSet 控制器
 
-##### ReplicaSet 控制器的介绍和功能
+##### ReplicaSet 控制器介绍
+
+ReplicaSet 控制器是 Kubernetes 中的一个重要控制器，用于管理和控制 Pod 的副本集。它确保指定数量的 Pod 在集群中运行，以满足应用程序的负载需求。
+
+##### ReplicaSet 的作用和功能
+
+ReplicaSet 的主要作用是维护指定数量的 Pod 副本，并根据需要进行副本的创建、调度和删除。它可以确保应用程序的副本数量始终符合预期，实现应用程序的高可用性和负载均衡。
 
 ##### 管理和操作 ReplicaSet
 
+ReplicaSet 控制器提供了多种操作来管理和操作 Pod 的副本集。
+
 ###### 创建和部署 ReplicaSet
 
-###### 扩容和缩容 ReplicaSet
+要创建和部署一个 ReplicaSet，需要定义一个包含 Pod 模板和副本数量的 YAML 配置文件。在配置文件中指定所需的 Pod 模板和副本数量后，可以使用 `kubectl create` 命令将 ReplicaSet 配置应用到集群中。
 
-###### 更新和滚动更新 ReplicaSet
+示例 YAML 配置文件：
 
-###### 删除和清理 ReplicaSet
+```yaml
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: my-replicaset
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-container
+        image: nginx
+```
 
-##### 示例：使用 ReplicaSet 控制器管理应用程序副本集
+使用 `kubectl create` 命令创建 ReplicaSet：
+
+```bash
+kubectl create -f replicaset.yaml
+```
+
+###### 扩容和缩容 ReplicaSet（后续类似）
+
+要扩容或缩容一个 ReplicaSet，有以下三种方式：
+
+- 方式一：可以更新 ReplicaSet 的 YAML 配置文件中的 `spec.replicas` 字段的值，然后使用 `kubectl apply` 命令将更新的配置应用到集群中。
+
+```yaml
+# replicaset.yaml
+spec:
+  replicas: 5  # 更新副本数量为 5
+```
+
+使用 `kubectl apply` 命令扩容或缩容 ReplicaSet：
+
+```bash
+kubectl apply -f replicaset.yaml
+```
+
+- 方式二：使用 `scale` 命令使用扩缩容，后面加上 `--replicas=n` 直接指定目标数量即可。
+
+```bash
+kubectl scale rs my-replicaset --replicas=2
+```
+
+- 方式三：使用 `kubectl edit` 命令，修改 `spec:replicas:n` 即可
+
+```bash
+kubectl edit rs my-replicaset
+```
+
+###### 滚动更新 ReplicaSet（后续类似）
+
+要更新一个 ReplicaSet，可以修改 ReplicaSet 的 YAML 配置文件中的 Pod 模板或其他字段的值，然后使用 `kubectl apply` 命令将更新的配置应用到集群中。Kubernetes 控制器会启动新的 Pod，并逐步停止旧的 Pod，实现滚动更新。
+
+示例 YAML 配置文件：
+
+```yaml
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: my-replicaset
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-container
+        image: nginx:1.2  # 更新容器镜像为新版本
+```
+
+使用 `kubectl apply` 命令更新 ReplicaSet：
+
+```bash
+kubectl apply -f replicaset.yaml
+```
+
+###### 删除和清理 ReplicaSet（后续类似）
+
+- 方式一：通过 `kubectl delete` 命令
+
+要删除一个 ReplicaSet，可以使用 `kubectl delete` 命令，并指定 ReplicaSet 的名称。
+
+```bash
+kubectl delete replicaset my-replicaset
+
+# 等价于
+
+kubectl delete replicaset my-replicaset --cascade=true
+```
+
+当删除一个 ReplicaSet 时，其管理的 Pod 也会被自动删除。如果不想自动删除其管理的 Pod，可以使用 `kubectl delete` 命令的 `--cascade` 参数。
+
+```bash
+kubectl delete replicaset my-replicaset --cascade=false
+```
+
+- 方式二：通过 yaml 文件
+
+```bash
+kubectl delete -f replicaset.yaml
+```
+
+##### 示例：replicaSet 控制器管理应用程序副本集
+
+假设我们有一个应用程序，需要确保始终有 3 个 Pod 副本运行。我们可以使用 ReplicaSet 控制器来管理这个副本集。
+
+首先，创建一个包含 Pod 模板和副本数量的 YAML 配置文件（例如 `replicaset.yaml`）：
+
+```yaml
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: my-replicaset
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-container
+        image:
+```
 
 #### Deployment 控制器
 
-##### Deployment 控制器的介绍和功能
+##### Deployment 控制器介绍
+
+Deployment 控制器是 Kubernetes 中最常用的控制器之一，它提供了对应用程序的声明性定义、自动化部署、滚动更新和回滚等功能。通过使用 Deployment 控制器，您可以轻松管理应用程序的副本集，并确保应用程序始终处于所需的状态。
+
+##### Deployment 的作用和功能
+
+Deployment 的主要作用是定义和管理应用程序的部署。它可以根据指定的副本数自动创建和管理 Pod 的副本集，并确保副本集中的 Pod 按照所需的状态运行。
+
+Deployment 提供了以下关键功能：
+
+- **声明性定义**：通过 YAML 文件或命令行参数，您可以声明性地定义 Deployment 的配置。这样，Kubernetes 将根据这些配置自动管理应用程序的部署状态。
+- **自动化部署**：Deployment 控制器会根据您定义的配置，自动创建并管理 Pod 的副本集。它会确保所需的副本数一直保持在运行状态，并在需要时自动进行扩容和缩容。
+- **滚动更新**：Deployment 支持滚动更新策略，允许您在不中断应用程序服务的情况下，逐步更新 Pod 的版本。您可以指定更新策略、版本号以及更新的时间间隔和速率等参数。
+- **回滚操作**：如果应用程序更新出现问题或不符合预期，您可以使用 Deployment 控制器进行快速的回滚操作，将应用程序恢复到之前的稳定版本。
 
 ##### 管理和操作 Deployment
 
 ###### 创建和部署 Deployment
 
+要创建和部署一个 Deployment，您需要提供一个包含 Deployment 配置的 YAML 文件。示例配置文件如下：
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+    - name: my-container
+      image: nginx:latest
+      ports:
+      - containerPort: 80
+```
+
+通过使用 `kubectl create` 命令并指定 YAML 文件，可以创建并部署 Deployment，例如：
+
+```bash
+kubectl apply -f deployment.yaml
+```
+
+该命令会将配置文件中定义的 Deployment 部署到 Kubernetes 集群中。Kubernetes 控制器会自动创建和管理指定数量的 Pod 副本。
+
 ###### 扩容和缩容 Deployment
 
-###### 更新和回滚 Deployment
+要扩容或缩容一个 ReplicaSet，有以下三种方式：
+
+- 方式一：可以更新 ReplicaSet 的 YAML 配置文件中的 `spec.replicas` 字段的值，然后使用 `kubectl apply` 命令将更新的配置应用到集群中。
+
+```yaml
+# deployment.yaml
+spec:
+  replicas: 5  # 更新副本数量为 5
+```
+
+使用 `kubectl apply` 命令扩容或缩容 ReplicaSet：
+
+```bash
+kubectl apply -f deployment.yaml
+```
+
+- 方式二：如果您需要增加或减少 Deployment 中运行的 Pod 副本的数量，可以使用 `kubectl scale` 命令进行扩缩容。例如，要将 Deployment 的副本数扩展到 5 个，可以运行以下命令：
+
+```bash
+kubectl scale deployment my-deployment --replicas=5
+```
+
+- 方式三：使用 `kubectl edit` 命令，修改 `spec:replicas:n` 即可
+
+```bash
+kubectl edit deployment my-deployment
+```
+
+###### 更新 Deployment
+
+Deployment 是 Kubernetes 中负责管理应用程序副本集的控制器，可以通过更新 Deployment 来进行应用程序的更新。在更新 Deployment 时，可以选择两种镜像更新策略：重建更新和滚动更新。可以通过 `strategy` 字段进行配置：
+
+```yaml
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate：
+      maxUnavailable: 25%
+      maxSurge: 25%
+```
+
+- `strategy`：指定新的Pod替代旧的Pod的策略，支持两个属性
+
+- `type` ：指定策略类型，支持两种策略
+  - 重建更新（Recreate）：重建更新策略会先删除旧的 Deployment 对象中的所有 Pod，然后根据更新后的配置创建新的 Pod。这种策略会导致应用程序短暂的停机时间，因为在删除旧的 Pod 和创建新的 Pod 之间会有一段时间的间隙。 
+  - 滚动更新（Rolling）：滚动更新策略允许逐步更新 Deployment 中的 Pod，以确保在整个更新过程中应用程序保持可用状态。滚动更新会逐步替换旧的 Pod，同时保持应用程序的可用性，确保在更新过程中始终有足够的实例在运行。  
+- `rollingUpdate`：当type为RollingUpdate的时候生效，用于为rollingUpdate设置参数，支持两个属性
+  - maxUnavailable： 用来指定在升级过程中不可用的Pod的最大数量，默认为25%。
+  - maxSurge： 用来指定在升级过程中可以超过期望的Pod的最大数量，默认为25%。
+
+Deployment 的默认的镜像更新策略是 RollingUpdate（滚动更新），**实际开发的时候，使用默认镜像更新策略即可**。
+
+示例：将镜像更新
+
+- 创建`nginx-deployment.yaml`用作测试
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  strategy: # 更新策略
+    type: Recreate
+  template:
+    metadata:
+      name: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.17.1 # 镜像
+          imagePullPolicy: IfNotPresent
+      restartPolicy: Always
+```
+
+- 方式一：使用 `kubectl set image` 命令
+
+```bash
+kubectl set image deployment nginx-deployment nginx=nginx:1.20.2
+```
+
+- 方式二：修改 yaml 文件，使用 `kubectl apply -f nginx-deployment.yaml` 命令即可
+
+```yaml
+...
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.20.2 # 镜像更新
+          imagePullPolicy: IfNotPresent
+      restartPolicy: Always
+...
+```
+
+###### 回滚 Deployment
+
+如果更新导致问题，可以使用 `kubectl rollout undo` 命令回滚到先前的版本。但是在进行回滚之前，请确保 Deployment 曾经进行过至少一个更新。
+
+> 当使用 `kubectl apply` 命令或者将更新的配置文件直接传递给 `kubectl` 命令时，更新操作会被记录到 Deployment 的历史记录中。但是命令操作一般默认不会的。
+
+而Deployment 之所以能够实现版本的回退，就是通过记录下历史的 ReplicaSet 来实现的，一旦想回滚到那个版本，只需要将当前版本的 Pod 数量降为 0 ，然后将回退版本的 Pod 提升为目标数量即可。
+
+- 通过命令将更新操作添加到 Deployment 的历史记录中，通过`--record` 参数用于记录历史。
+
+```bash
+kubectl set image deployment/nginx-deployment nginx=nginx:1.20.2
+```
+
+- 要检查是否有回滚历史记录
+
+```bash
+kubectl rollout history deployment nginx-deployment
+```
+
+- 如果输出中显示有历史记录
+
+```bash
+kubectl rollout undo deployment nginx-deployment
+```
+
+这将回滚到先前成功部署的版本，以恢复应用程序到稳定状态。
+
+- 如果输出中显示有历史记录，回滚指定版本
+
+```bash
+# 可以使用-to-revision=1回退到1版本，如果省略这个选项，就是回退到上个版本，即2版本
+kubectl rollout undo deployment nginx-deployment --to-revision=1
+```
+
+- `kubectl rollout` 命令操作
+
+| 命令                                                         | 语法                             |
+| ------------------------------------------------------------ | -------------------------------- |
+| `kubectl rollout status deployment/<deployment-name>`        | 查看 Deployment 的滚动更新状态。 |
+| `kubectl rollout history deployment/<deployment-name>`       | 查看 Deployment 的历史版本。     |
+| `kubectl rollout undo deployment/<deployment-name>`          | 回滚到上一个版本。               |
+| `kubectl rollout undo deployment/<deployment-name> --to-revision=<revision>` | 回滚到指定的版本。               |
+| `kubectl rollout pause deployment/<deployment-name>`         | 暂停滚动更新操作。               |
+| `kubectl rollout resume deployment/<deployment-name>`        | 恢复滚动更新操作。               |
+
+请将 `<deployment-name>` 替换为您实际使用的 Deployment 名称。
 
 ###### 暂停和继续 Deployment
 
+在某些情况下，您可能需要暂停 Deployment 的进行。例如，您可能需要暂停更新操作，以便进行故障排除或其他维护工作。您可以使用 `kubectl rollout pause` 命令暂停 Deployment 的进行，例如：
+
+```bash
+kubectl rollout pause deployment my-deployment
+```
+
+这将暂停 Deployment 的进程，阻止任何新的副本部署或更新操作。
+
+要继续进行 Deployment 的操作，可以使用 `kubectl rollout resume` 命令，例如：
+
+```bash
+kubectl rollout resume deployment my-deployment
+```
+
+这将恢复 Deployment 的正常操作，使其继续进行新的副本部署或更新操作。
+
 ###### 删除和清理 Deployment
+
+- 方式一：通过 `kubectl delete` 命令
+
+要删除一个 ReplicaSet，可以使用 `kubectl delete` 命令，并指定 ReplicaSet 的名称。
+
+```bash
+kubectl delete deployment my-deployment
+
+# 等价于
+
+kubectl delete deployment my-deployment --cascade=true
+```
+
+当删除一个 Deployment时，其管理的 Pod 也会被自动删除。如果不想自动删除其管理的 Pod，可以使用 `kubectl delete` 命令的 `--cascade` 参数。
+
+```bash
+kubectl delete deployment my-deployment --cascade=false
+```
+
+- 方式二：通过 yaml 文件
+
+```bash
+kubectl delete -f deployment.yaml
+```
+
+###### 金丝雀发布 Deployment
 
 ##### 示例：使用 Deployment 控制器进行应用程序管理和版本控制
 
+假设我们有一个名为 `my-app` 的应用程序，我们可以创建一个 Deployment 来管理它的副本集。以下是一个示例的 Deployment 的 YAML 配置文件：
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+        - name: my-app-container
+          image: my-app-image:1.0.0
+          ports:
+            - containerPort: 8080
+```
+
+通过将上述 YAML 文件保存为 `deployment.yaml`，然后运行以下命令创建和部署 Deployment：
+
+```bash
+kubectl create -f deployment.yaml
+```
+
+Deployment 将根据定义的配置信息创建 3 个副本的 Pod，并确保它们一直保持在运行状态。您可以使用其他命令来扩容、更新、回滚或删除该 Deployment。
+
 #### DaemonSet 控制器
 
-##### DaemonSet 控制器的介绍和功能
+##### DaemonSet 控制器介绍
+
+在 Kubernetes 中，DaemonSet 控制器是一种用于在集群中每个节点上运行一个副本的控制器。它确保在集群的每个节点上都有一个 Pod 实例运行。与 ReplicaSet 和 Deployment 不同，DaemonSet 不关心副本数量，它只关心每个节点是否有一个 Pod 在运行。
+
+DaemonSet 控制器通常用于在整个集群中运行一些特殊的系统级任务或守护进程应用程序，例如日志收集器、监控代理或网络插件。
+
+##### DaemonSet 的作用和功能
+
+DaemonSet 的作用是在每个节点上运行一个 Pod 实例，确保集群中的每个节点都执行相应的任务或运行指定的应用程序。它的功能包括：
+
+- 在集群的每个节点上创建和管理 Pod 的生命周期。
+- 监控节点的变化，并根据需要在新节点上自动部署或删除 Pod 实例。
+- 提供节点级别的服务或应用程序，确保每个节点都有相应的 Pod 实例在运行。
 
 ##### 管理和操作 DaemonSet
 
 ###### 创建和部署 DaemonSet
 
-###### 更新和滚动更新 DaemonSet
+要创建和部署 DaemonSet，可以使用以下示例的 YAML 配置文件：
+
+```yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: my-daemonset
+spec:
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+        - name: my-app
+          image: nginx:1.21.1
+```
+
+将上述配置保存为 `daemonset.yaml` 文件，并使用以下命令创建 DaemonSet：
+
+```bash
+kubectl apply -f daemonset.yaml
+```
+
+这将创建一个名为 `my-daemonset` 的 DaemonSet，并在每个节点上运行一个 Pod 实例。
+
+###### 更新 DaemonSet
+
+1.6版本开始支持滚动更新。如下两种策略
+
+- OnDelete ： 默认升级策略，在创建好新的DaemonSet配置之后，新的Pod不会被自动创建，用户需要手动删除旧版本的Pod，才触发新建操作。
+- RollingUpdate： 旧版本的POD 将被自动杀掉，然后自动创建新版的DaemonSet Pod。与Deployment 不同为不支持查看和管理DaemonSet的更新记录；回滚操作是通过再次提交旧版本配置而不是 rollback命令实现
+
+要更新 DaemonSet 的策略，可以编辑原始的 YAML 配置文件并更新相关字段。以下是一个示例，展示如何使用 `rollingUpdate` 策略进行滚动更新：
+
+```yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: my-daemonset
+spec:
+  selector:
+    matchLabels:
+      app: my-app
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+        - name: my-app
+          image: nginx:1.22.1
+```
+
+在上述示例中，我们添加了 `updateStrategy` 字段，并将 `type` 设置为 `RollingUpdate`，表示使用滚动更新策略。
+
+- `maxUnavailable` 定义了在进行滚动更新期间允许不可用的最大 Pod 数量。这里设置为 `1`，表示每次更新只允许一个 Pod 不可用。
+- `maxSurge` 定义了在进行滚动更新期间允许超出所需副本数的最大 Pod 数量。这里设置为 `1`，表示每次更新最多允许一个 Pod 超出所需副本数。
+
+要应用更新策略，可以使用以下命令：
+
+```bash
+kubectl apply -f daemonset.yaml
+```
+
+这将更新 DaemonSet 的配置，并根据新的策略进行滚动更新。在滚动更新期间，将逐个替换旧版本的 Pod 实例，并确保在更新过程中保持可用性。
+
+请注意，根据实际情况和需求，你可以调整 `maxUnavailable` 和 `maxSurge` 的值，以满足特定的更新需求。
 
 ###### 删除和清理 DaemonSet
 
+要删除和清理 DaemonSet，可以使用以下命令：
+
+```bash
+kubectl delete daemonset my-daemonset
+```
+
 ##### 示例：使用 DaemonSet 控制器管理守护进程应用程序
+
+在这个示例中，我们将演示如何使用 DaemonSet 控制器来管理守护进程应用程序。
+
+- 创建 DaemonSet
+
+首先，我们需要创建一个包含守护进程应用程序的 DaemonSet。创建一个名为 `my-daemonset` 的 YAML 配置文件，指定所需的容器镜像和其他配置参数。示例配置如下：
+
+```yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: my-daemonset
+spec:
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-container
+        image: nginx:latest
+```
+
+保存并应用这个 YAML 文件：
+
+```bash
+kubectl apply -f my-daemonset.yaml
+```
+
+- 验证 DaemonSet
+
+可以使用以下命令验证 DaemonSet 是否成功创建：
+
+```bash
+kubectl get daemonset
+```
+
+你应该看到 `my-daemonset` 在列表中显示。
+
+- 更新 DaemonSet
+
+如果你需要更新 DaemonSet 中的容器镜像，可以使用以下命令：
+
+```bash
+kubectl set image daemonset my-daemonset my-container=nginx:1.19
+```
+
+这将将容器 `my-container` 的镜像更新为 `nginx:1.19`。
+
+- 删除 DaemonSet
+
+要删除 DaemonSet，可以运行以下命令：
+
+```bash
+kubectl delete daemonset my-daemonset
+```
+
+这将删除名为 `my-daemonset` 的 DaemonSet。
 
 #### StatefulSet 控制器
 
-##### StatefulSet 控制器的介绍和功能
+##### StatefulSet 控制器介绍
+
+StatefulSet 控制器是 Kubernetes 中的一个核心控制器，用于管理有状态的应用程序。与 ReplicaSet 或 Deployment 控制器不同，StatefulSet 控制器旨在为有状态的应用程序提供唯一的标识和稳定的网络标识符。
+
+##### StatefulSet 的作用和功能
+
+StatefulSet 的作用是确保有状态的应用程序在 Kubernetes 集群中的可靠运行。它为每个 Pod 提供唯一的标识符，并为这些 Pod 分配稳定的网络标识符，以便可以持久地访问它们。这使得有状态的应用程序可以在扩容、升级或故障恢复等场景下保持数据的一致性和稳定性。
+
+StatefulSet 控制器的主要功能包括：
+
+- 为每个 Pod 分配稳定的网络标识符和主机名。
+- 提供有序的创建、更新和删除操作，以确保应用程序的有状态特性得到保持。
+- 集成持久化存储，为有状态应用程序提供持久化的数据存储能力。
+- 支持有状态应用程序的扩容和缩容操作。
 
 ##### 管理和操作 StatefulSet
 
 ###### 创建和部署 StatefulSet
 
+要创建和部署 StatefulSet，需要使用 YAML 配置文件来定义 StatefulSet 的规范。以下是一个示例的 StatefulSet 配置文件：
+
+```yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: my-statefulset
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+        - name: my-container
+          image: nginx:latest
+```
+
+保存以上配置到名为 `my-statefulset.yaml` 的文件中，并使用以下命令来创建 StatefulSet：
+
+```bash
+kubectl apply -f my-statefulset.yaml
+```
+
+这将创建一个名为 `my-statefulset` 的 StatefulSet，并部署 3 个 Pod。
+
 ###### 扩容和缩容 StatefulSet
 
-###### 更新和回滚 StatefulSet
+要扩容 StatefulSet 中的 Pod 数量，可以使用以下命令：
+
+```bash
+kubectl scale statefulset my-statefulset --replicas=5
+```
+
+这将将 `my-statefulset` 的副本数量扩展到 5 个。
+
+要缩容 StatefulSet，可以使用相同的命令并将副本数量减少到所需的数量。
+
+###### 更新 StatefulSet
+
+比如，要更新 StatefulSet 中的容器镜像。
+
+方式一：使用 `kubectl set image` 命令
+
+```bash
+kubectl set image statefulset my-statefulset my-container=nginx:1.19
+```
+
+这将将 `my-statefulset` 中的 `my-container` 容器的镜像更新为 `nginx:1.19`。
+
+- 方式二：修改 yaml 文件，使用 `kubectl apply -f my-statefulset.yaml` 命令即可
+
+```yaml
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+        - name: my-container
+          image: nginx:1.19
+```
 
 ###### 删除和清理 StatefulSet
 
+- 方式一：通过 `kubectl delete` 命令
+
+要删除一个 ReplicaSet，可以使用 `kubectl delete` 命令，并指定 ReplicaSet 的名称。
+
+```bash
+kubectl delete statefulset my-statefulset
+
+# 等价于
+
+kubectl delete statefulset my-statefulset --cascade=true
+```
+
+当删除一个 Deployment时，其管理的 Pod 也会被自动删除。如果不想自动删除其管理的 Pod，可以使用 `kubectl delete` 命令的 `--cascade` 参数。
+
+```bash
+kubectl delete statefulset my-statefulset --cascade=false
+```
+
+- 方式二：通过 yaml 文件
+
+```bash
+kubectl delete -f my-statefulset.yaml
+```
+
 ##### 示例：使用 StatefulSet 控制器管理有状态应用程序
+
+让我们以一个示例来演示如何使用 StatefulSet 控制器来管理有状态的应用程序。假设我们有一个 Redis 数据库的有状态应用程序，我们将使用 StatefulSet 来管理它。
+
+首先，我们创建一个 Redis StatefulSet 的 YAML 配置文件，如下所示：
+
+```yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+spec:
+  replicas: 3
+  serviceName: redis
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+```
 
 #### Job 控制器
 
