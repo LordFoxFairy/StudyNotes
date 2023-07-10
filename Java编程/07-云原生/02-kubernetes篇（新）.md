@@ -1081,6 +1081,8 @@ kubectl logs -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=
 
 **The connection to the server localhost:8080 was refused - did you specify the right host or port?**
 
+- 主节点出现该问题
+
 ```bash
 sudo mkdir ~/.kube
 sudo cp /etc/kubernetes/admin.conf ~/.kube/
@@ -1090,6 +1092,8 @@ cd ~/.kube
 sudo mv admin.conf config
 sudo service kubelet restart
 ```
+
+- 从节点出现该问题：权限不足，需要使用上述配置文件，从主节点的`~\.kube\`下的配置文件拷贝到从节点中。
 
 ### Kubernetes 对象概述
 
@@ -3503,9 +3507,11 @@ spec:
 
 #### 控制器概述
 
+##### 什么是 Kubernetes 控制器
+
 在 Kubernetes 中，控制器是负责管理和控制应用程序的关键组件。它们用于确保所管理的资源处于期望的状态，并根据实际情况进行调整，以实现应用程序的预期行为。在之前的章节中，我们已经学习了 Pod，它是 Kubernetes 中的最小调度单位。现在，我们将进一步学习各种控制器，它们用于**管理和调度 Pod 资源**。
 
-##### 控制器的作用和功能
+##### 控制器的作用和重要性
 
 控制器的主要作用是管理和控制应用程序的生命周期。它们负责创建、部署、调度、更新和删除应用程序的相关资源，以确保应用程序在集群中的运行状态符合预期。控制器可以根据需求自动进行资源的扩缩，以满足应用程序的负载变化。它们还负责监控应用程序的健康状态，并根据需要进行故障恢复。
 
@@ -3602,7 +3608,7 @@ kubectl scale rs my-replicaset --replicas=2
 kubectl edit rs my-replicaset
 ```
 
-###### 滚动更新 ReplicaSet（后续类似）
+###### 更新 ReplicaSet（后续类似）
 
 要更新一个 ReplicaSet，可以修改 ReplicaSet 的 YAML 配置文件中的 Pod 模板或其他字段的值，然后使用 `kubectl apply` 命令将更新的配置应用到集群中。Kubernetes 控制器会启动新的 Pod，并逐步停止旧的 Pod，实现滚动更新。
 
@@ -4072,74 +4078,39 @@ kubectl apply -f daemonset.yaml
 kubectl delete daemonset my-daemonset
 ```
 
-##### 示例：使用 DaemonSet 控制器管理守护进程应用程序
+##### 示例：使用 DaemonSet 在每个节点上运行守护进程
 
-在这个示例中，我们将演示如何使用 DaemonSet 控制器来管理守护进程应用程序。
-
-- 创建 DaemonSet
-
-首先，我们需要创建一个包含守护进程应用程序的 DaemonSet。创建一个名为 `my-daemonset` 的 YAML 配置文件，指定所需的容器镜像和其他配置参数。示例配置如下：
+例如，假设你有一个日志收集器，你希望在集群的每个节点上都运行该收集器的实例。你可以创建一个 DaemonSet 配置来实现这一目标。以下是一个示例的 DaemonSet 配置文件：
 
 ```yaml
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: my-daemonset
+  name: log-collector
 spec:
   selector:
     matchLabels:
-      app: my-app
+      app: log-collector
   template:
     metadata:
       labels:
-        app: my-app
+        app: log-collector
     spec:
       containers:
-      - name: my-container
-        image: nginx:latest
+      - name: log-collector
+        image: log-collector-image:tag
+        # 容器配置和其他设置
 ```
 
-保存并应用这个 YAML 文件：
+在上面的示例中，`log-collector` 是 DaemonSet 的名称，并且 `app: log-collector` 是选择器（selector），用于标识要在哪些节点上运行 DaemonSet 中的 Pod。在 `template` 部分中，你可以定义要运行的容器，以及其他相关的配置。
 
-```bash
-kubectl apply -f my-daemonset.yaml
-```
-
-- 验证 DaemonSet
-
-可以使用以下命令验证 DaemonSet 是否成功创建：
-
-```bash
-kubectl get daemonset
-```
-
-你应该看到 `my-daemonset` 在列表中显示。
-
-- 更新 DaemonSet
-
-如果你需要更新 DaemonSet 中的容器镜像，可以使用以下命令：
-
-```bash
-kubectl set image daemonset my-daemonset my-container=nginx:1.19
-```
-
-这将将容器 `my-container` 的镜像更新为 `nginx:1.19`。
-
-- 删除 DaemonSet
-
-要删除 DaemonSet，可以运行以下命令：
-
-```bash
-kubectl delete daemonset my-daemonset
-```
-
-这将删除名为 `my-daemonset` 的 DaemonSet。
+使用上述配置，Kubernetes 将在集群的每个节点上自动创建一个 Pod 实例，其中运行着 `log-collector` 容器。这样，你就可以在每个节点上收集日志并执行其他相关任务。
 
 #### StatefulSet 控制器
 
 ##### StatefulSet 控制器介绍
 
-StatefulSet 控制器是 Kubernetes 中的一个核心控制器，用于管理有状态的应用程序。与 ReplicaSet 或 Deployment 控制器不同，StatefulSet 控制器旨在为有状态的应用程序提供唯一的标识和稳定的网络标识符。
+在 Kubernetes 中，StatefulSet 是一种控制器，用于管理有状态应用程序的部署。与无状态应用程序不同，有状态应用程序需要稳定的网络标识和有序的部署与扩展。StatefulSet 提供了这些功能，确保有状态应用程序的稳定性和可靠性。
 
 ##### StatefulSet 的作用和功能
 
@@ -4254,70 +4225,389 @@ kubectl delete statefulset my-statefulset --cascade=false
 kubectl delete -f my-statefulset.yaml
 ```
 
-##### 示例：使用 StatefulSet 控制器管理有状态应用程序
+##### 使用 StatefulSet 管理有状态应用程序
 
-让我们以一个示例来演示如何使用 StatefulSet 控制器来管理有状态的应用程序。假设我们有一个 Redis 数据库的有状态应用程序，我们将使用 StatefulSet 来管理它。
+通过使用 StatefulSet，你可以管理有状态应用程序的生命周期。StatefulSet 会根据配置在集群中创建指定数量的 Pod，并为每个 Pod 分配一个稳定的网络标识。这使得有状态应用程序可以保持稳定的网络连接，并保持数据的一致性。
 
-首先，我们创建一个 Redis StatefulSet 的 YAML 配置文件，如下所示：
+###### 稳定的网络标识
+
+每个 StatefulSet 的 Pod 都有一个唯一的网络标识。这个标识是通过 Headless Service（无头服务）来提供的，它为每个 Pod 提供 DNS 解析条目。
+
+无头服务的 DNS 条目通常为 `$(service name).$(namespace).svc.cluster.local`，因此，Pod 的解析条目为 `$(pod name).$(service name).$(namespace).svc.cluster.local`。
+
+稳定的网络标识对于有状态应用程序非常重要，它可以用于建立稳定的网络连接、进行服务发现和通信。
+
+###### 有序的部署与扩展
+
+StatefulSet 提供了有序的部署与扩展功能，通过 `podManagementPolicy` 参数来控制 Pod 的管理策略。`podManagementPolicy` 有两个选项：OrderedReady（有序启动，默认值）和 Parallel（并发一起启动）。
+
+- OrderedReady：StatefulSet 将按照索引顺序逐个启动和更新 Pod。每个 Pod 在启动之前必须先达到 Ready 状态。这种管理策略适用于有状态应用程序，其中每个实例在启动之前可能需要一些初始化操作或依赖其他实例的状态。
+- Parallel：StatefulSet 可以并发地启动和更新 Pod，而不需要等待之前的 Pod 达到 Ready 状态。这种管理策略适用于无状态应用程序或无依赖关系的有状态应用程序。
+
+你可以通过在 StatefulSet 的配置中添加 `podManagementPolicy` 参数来指定管理策略。例如：
 
 ```yaml
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: redis
+  name: my-statefulset
 spec:
   replicas: 3
-  serviceName: redis
-  selector:
-    matchLabels:
-      app: redis
-  template:
-    metadata:
-      labels:
-        app: redis
+  podManagementPolicy: OrderedReady
+  # 其他配置项...
 ```
 
 #### Job 控制器
 
-##### Job 控制器的介绍和功能
+##### Job 的概述
 
-##### 管理和操作 Job
+在 Kubernetes 中，Job 控制器是一种控制器对象，用于管理批量作业。Job 控制器负责确保指定数量的 Pod 在集群中运行，并且在所有 Pod 完成任务后将它们删除。
 
-###### 创建和运行 Job
+Job 控制器的主要组成部分包括以下几个方面：
 
-###### 查看和监控 Job 状态
+- 需要执行的任务：任务可以是任何可以在容器中运行的操作，如 Shell 脚本、命令行程序等。
+- Pod 模板：Job 控制器使用 Pod 模板来创建 Pod。Pod 模板定义了要使用的容器镜像、容器的命令和参数等。
+- 完成策略：完成策略定义了在 Job 完成后如何处理 Pod。默认情况下，Job 控制器会在所有 Pod 完成任务后将它们删除。但是，您也可以将完成策略设置为保留所有 Pod 或仅保留最后一个 Pod。
 
-###### 清理和删除 Job
+##### 创建和配置
 
-##### 示例：使用 Job 控制器运行一次性任务和批处理作业
+要创建一个 Job，你需要创建一个 Job 配置文件。以下是一个示例的 Job 配置文件：
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: my-job
+spec:
+  template:
+    spec:
+      containers:
+      - name: my-container
+        image: my-image:tag
+        # 容器配置和其他设置
+  backoffLimit: 3
+```
+
+在上面的配置文件中，你需要指定 Job 的名称和 Pod 的模板。在模板中，你可以定义要运行的容器的镜像、环境变量、资源限制等。
+
+`backoffLimit` 是一个可选参数，它指定了在任务或作业失败时的重试次数。在上述示例中，`backoffLimit` 设置为 3，意味着任务最多会重试 3 次。
+
+Kubernetes Job 控制器的详细参数表格：
+
+| 参数                             | 描述                                                         | 默认值   |
+| :------------------------------- | :----------------------------------------------------------- | :------- |
+| apiVersion                       | Job 对象的 API 版本                                          | batch/v1 |
+| kind                             | Job 对象的类型                                               | Job      |
+| metadata                         | Job 对象的元数据，包括名称、标签等                           |          |
+| spec.completions                 | Job 完成的 Pod 数量                                          | 1        |
+| spec.parallelism                 | 同时运行的 Pod 数量                                          | 1        |
+| spec.backoffLimit                | 重试失败的 Pod 的次数                                        | 6        |
+| spec.activeDeadlineSeconds       | Job 运行的最长时间，超过该时间后，所有未完成的 Pod 将被终止  |          |
+| spec.selector                    | 用于选择要包含在 Job 中的 Pod 的标签选择器                   |          |
+| spec.template.metadata           | Pod 的元数据，包括名称、标签等                               |          |
+| spec.template.spec.containers    | Pod 中的容器列表，包括容器的名称、镜像、命令和参数等         |          |
+| spec.template.spec.restartPolicy | Pod 的重启策略。通常应将其设置为 Never，因为 Job 控制器将在所有 Pod 完成任务后删除它们 | Never    |
 
 #### CronJob 控制器
 
-##### CronJob 控制器的介绍和功能
+##### CronJob 的概述
 
-##### 管理和操作 CronJob
+CronJob 是基于 Cron 定时任务的 Kubernetes 资源类型。类似于传统的 Cron 任务，CronJob 允许您在特定时间或时间间隔内运行一次或多次任务。Kubernetes CronJob 控制器会监视 CronJob 对象，并在指定的时间表上创建和删除 Pod。
 
-###### 创建和调度 CronJob
+##### 创建和配置
 
-###### 查看和监控 CronJob 状态
+要使用 Kubernetes CronJob 控制器，您需要创建一个 CronJob 对象并将其提交给 Kubernetes API 服务器。以下是一个简单的 CronJob 对象示例：
 
-###### 更新和删除 CronJob
+```yaml
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: my-cronjob
+spec:
+  schedule: "*/1 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: my-container
+            image: my-image
+            command: ["echo", "Hello, world!"]
+          restartPolicy: OnFailure
+```
 
-##### 示例：使用 CronJob 控制器定时调度任务
+在以上示例中，CronJob 控制器将创建一个名为 my-cronjob 的 CronJob 对象，该 CronJob 将每分钟运行一次一个简单的容器，该容器将运行一个命令`` echo "Hello, world!"``。该 CronJob 的 schedule 字段设置为 Cron 时间表，即`` */1 * * * *``，表示该 CronJob 每分钟运行一次。
+
+要创建此 CronJob，您可以使用以下命令：
+
+```bash
+kubectl create -f my-cronjob.yaml
+```
+
+运行该命令后，Kubernetes 将创建一个名为 my-cronjob 的 CronJob 对象并将其提交到 Kubernetes API 服务器。
+
+##### 运行定期任务
+
+Kubernetes CronJob 控制器允许您在指定的时间表上定期运行任务。您可以使用 Cron 时间表语法指定任务应在哪些时间运行。以下是Cron 表达式语法：
+
+```bash
+*    *    *    *    *    *
+┬    ┬    ┬    ┬    ┬    ┬
+│    │    │    │    │    │
+│    │    │    │    │    └───── 星期几 (0 - 6) (0 表示星期天)
+│    │    │    │    └────────── 月份 (1 - 12)
+│    │    │    └─────────────── 日 (1 - 31)
+│    │    └──────────────────── 小时 (0 - 23)
+│    └───────────────────────── 分钟 (0 - 59)
+└────────────────────────────── 秒 (0 - 59) （可选字段）
+```
+
+Cron 表达式的每个字段都有一组允许的值。以下是各个字段的含义：
+
+- 秒（秒钟）：0 - 59
+- 分钟（分钟）：0 - 59
+- 小时（小时）：0 - 23
+- 日（日期）：1 - 31
+- 月（月份）：1 - 12 或 JAN - DEC
+- 星期几：0 - 6 或 SUN - SAT
+
+在以上每个字段中，您可以使用以下特殊字符：
+
+- 星号（``*``）：表示该字段的所有可能值。例如，``* ``在分钟字段中表示每分钟都运行任务。
+- 逗号（``,``）：用于分隔多个值。例如，1,3,5 在月份字段中表示一月、三月和五月运行任务。
+- 中划线（``-``）：用于表示一个范围。例如，1-5 在日期字段中表示 1 到 5 号运行任务。
+- 斜杠（``/``）：用于表示一个增量。例如，``*/15`` 在分钟字段中表示每 15 分钟运行任务。
+
+Cron 表达式的含义是根据各个字段的值来确定任务的运行时间。例如，以下 Cron 表达式：
+
+```bash
+0 0 * * * *
+```
+
+表示每天 0 点整开始运行任务。其中，第一个字段 0 表示秒钟，第二个字段 0 表示分钟，第三个字段 * 表示所有小时数，第四个字段 * 表示所有日期，第五个字段 * 表示所有月份，第六个字段 * 表示所有星期几。
+
+以下是一些 Cron 表达式示例：
+
+- `0 0 * * * *`：每小时运行一次。
+- `0 0 12 * * *`：每天中午 12 点运行一次。
+- `0 0 * * * 1-5`：每周一到周五每小时运行一次。
+- `0 0 0 1 * *`：每月的第一天午夜运行一次。
+- `0 0 0 * * 1`：每周一午夜运行一次。
+- `0 0 0 * * 1-5`：每周一到周五午夜运行一次。
+- `0 0 0 1-15 * *`：每月的第一天到第 15 天午夜运行一次。
+- `0 0 0 1,15 * *`：每月的第一天和第 15 天午夜运行一次。
+- `0 0 0 * * 0`：每周日午夜运行一次。
 
 #### 水平自动伸缩（HPA）控制器
 
-##### HPA 控制器的介绍和功能
+##### HPA 控制器的介绍
+
+水平自动伸缩（Horizontal Pod Autoscaler, HPA）是 Kubernetes 中的一个控制器，可以根据应用程序的负载情况自动扩展或缩小 Pod 的数量。HPA 控制器可以通过监视指标（例如 CPU 使用率或内存使用率）来发现负载变化，并根据预定义的规则调整 Pod 的数量，以确保应用程序具有所需的资源。
+
+![50.png](./assets/02-kubernetes篇（新）/1647751160075-1d3a6376-0b09-4916-a8fe-7bd6dd5e8578.png)
+
+##### HPA 的作用和功能
+
+HPA 控制器的作用是自动根据应用程序负载情况来调整 Pod 的数量，以确保应用程序具有所需的资源。HPA 控制器的功能包括：
+
+- 监视指标：HPA 控制器可以监视指标，例如 CPU 使用率或内存使用率，以发现负载变化。
+- 自动伸缩 Pod 数量：HPA 控制器可以根据预定义的规则自动扩展或缩小 Pod 的数量，以确保应用程序具有所需的资源。
+- 避免资源浪费：通过自动调整 Pod 的数量，HPA 控制器可以避免资源浪费，从而提高资源利用率。
+- 提高应用程序的可用性：通过确保应用程序具有足够的资源，HPA 控制器可以提高应用程序的可用性，并降低应用程序因资源不足而崩溃的风险。
+
+##### 使用 metrics-server 监控 Kubernetes 资源。
+
+- 获取 metrics-server v0.6.1（网速不行，请点这里[📎components.yaml](https://www.yuque.com/attachments/yuque/0/2022/yaml/513185/1647751176236-873b749c-d26c-49f5-b025-5d2da3cda549.yaml)）
+
+```bash
+wget https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.6.1/components.yaml
+```
+
+- 修改 components.yaml
+
+```bash
+vim components.yaml
+```
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    k8s-app: metrics-server
+  name: metrics-server
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      k8s-app: metrics-server
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        k8s-app: metrics-server
+    spec:
+      containers:
+      - args:
+        - --cert-dir=/tmp
+        - --secure-port=4443
+        - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
+        - --kubelet-use-node-status-port
+        - --metric-resolution=15s
+        # 修改部分
+        - --kubelet-insecure-tls # 使用非安全的协议
+        image: bitnami/metrics-server:0.6.1 # k8s.gcr.io/metrics-server/metrics-server:v0.6.1
+```
+
+- 安装
+
+```bash
+kubectl apply -f components.yaml
+```
+
+- 查看pod运行情况
+
+```bash
+kubectl get pod -n kube-system
+```
+
+- 使用kubectl top node 查看资源使用情况
+
+```bash
+kubectl top node [--use-protocol-buffers]
+```
+
+```bash
+kubectl top pod -n kube-system [--use-protocol-buffers]
+```
 
 ##### 管理和操作 HPA
 
 ###### 创建和配置 HPA
 
+要创建 HPA 控制器，您需要提供以下信息：
+
+1. 监视的指标：例如 CPU 使用率或内存使用率。
+2. 要自动扩展或缩小的目标对象：例如 Deployment 或 ReplicaSet。
+3. 要保持的最小和最大 Pod 数量。
+4. 触发自动伸缩的阈值。
+
+以下是一个示例 HPA 控制器的 YAML 文件：
+
+```yaml
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: example-app
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: example-app
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      targetAverageUtilization: 50
+```
+
+在上面的示例中，HPA 控制器将监视名为 `example-app` 的 Deployment 的 CPU 使用率，并在平均使用率达到 50% 时自动扩展 Pod 数量，以保持最小 2 个 Pod，最大 10 个 Pod。
+
 ###### 监控和自动伸缩 Pod 数量
+
+一旦创建了 HPA 控制器，它将开始监视指定的指标，并根据规则自动扩展或缩小 Pod 数量。您可以使用以下命令来查看 HPA 控制器的状态：
+
+```
+kubectl get hpa
+```
+
+此命令将返回 HPA 控制器的当前状态，包括监视的指标、目标对象、当前 Pod 数量和自动伸缩规则。
 
 ###### 更新和删除 HPA
 
+要更新 HPA 控制器的规则，您可以使用以下命令：
+
+```bash
+kubectl edit hpa example-app
+```
+
+此命令将打开 HPA 控制器的 YAML 文件，您可以在其中更新监视的指标、Pod 数量等信息。
+
+要删除 HPA 控制器，您可以使用以下命令：
+
+```bash
+kubectl delete hpa example-app
+```
+
+这将删除名为 `example-app` 的 HPA 控制器。
+
 ##### 示例：使用 HPA 控制器进行自动伸缩和负载管理
+
+以下是一个使用 HPA 控制器进行自动伸缩和负载管理的示例：
+
+- 创建一个 Deployment：
+
+```
+kubectl create deployment example-app --image=nginx
+```
+
+- 创建一个 HPA 控制器：
+
+```yaml
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: example-app
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: example-app
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      targetAverageUtilization: 50
+```
+
+- 使用`` kubectl get hpa ``命令查看 HPA 控制器的状态。
+
+- 使用 `kubectl run `命令创建一个负载测试：
+
+
+```bash
+kubectl run -i --tty load-generator --image=busybox /bin/sh
+```
+
+- 在负载测试中的 shell 中运行以下命令来生成负载：
+
+```bash
+while true; do wget -q -O- http://example-app; done
+```
+
+这将使用 wget 命令不断地向 `example-app` 发送请求，从而增加负载。
+
+- 在另一个 shell 中使用 `kubectl get pods` 命令来查看 Pod 的数量是否自动扩展。
+- 在负载测试中的 shell 中使用 `Ctrl+C` 停止负载生成，并使用`kubectl delete` 命令删除负载测试：
+
+```bash
+kubectl delete pod load-generator
+```
+
+- 在 HPA 控制器中更新规则，将目标 CPU 使用率从 50% 提高到 80%：
+
+```bash
+kubectl edit hpa example-app
+```
+
+- 再次开始负载测试，并使用 `kubectl get pods` 命令查看 Pod 的数量是否自动扩展。
+- 在负载测试中的 shell 中使用 `Ctrl+C` 停止负载生成，并使用 `kubectl delete` 命令删除负载测试。
 
 ### 服务发现与负载均衡
 
