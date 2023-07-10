@@ -2264,6 +2264,8 @@ kubectl命令的对应关系：
 
 请注意，这里列出的命令只是一些常见的kubectl命令示例，还有更多的kubectl命令和选项可用。可以通过运行 `kubectl --help` 命令或访问 Kubernetes 官方文档了解更多详细信息和命令选项。
 
+## 进阶篇：构建高可用、高性能的容器化平台
+
 ### Pod：最小调度单位
 
 #### Pod 概述
@@ -4613,7 +4615,69 @@ kubectl edit hpa example-app
 
 #### 服务发现的概念和实现
 
-#### 使用 Service 进行内部和外部访问
+##### 什么是服务发现和负载均衡？
+
+##### 为什么需要 Kubernetes 的服务发现和负载均衡？
+
+#### Kubernetes 服务发现
+
+##### Kubernetes 的服务概述
+
+##### Kubernetes 如何发现服务？
+
+##### Kubernetes 服务发现的类型
+
+###### 基于环境变量的服务发现
+
+###### 基于 DNS 的服务发现
+
+###### 在 Kubernetes 中使用服务发现
+
+#### Kubernetes 负载均衡
+
+##### Kubernetes 负载均衡概述
+
+##### Kubernetes 如何实现负载均衡？
+
+##### Kubernetes 负载均衡的类型
+
+###### Round-robin 负载均衡
+
+###### Session-based 负载均衡
+
+###### IP-based 负载均衡
+
+###### Weighted 负载均衡
+
+#### Kubernetes 服务发现和负载均衡的具体实现
+
+##### Kubernetes Service 和 Endpoint
+
+##### Kubernetes Service 的类型
+
+###### ClusterIP
+
+###### NodePort
+
+###### LoadBalancer
+
+###### ExternalName
+
+##### Kubernetes Ingress
+
+###### Ingress Controller
+
+###### Ingress 路由规则
+
+###### TLS 加密支持
+
+#### Kubernetes 服务发现和负载均衡的最佳实践
+
+##### 如何选择正确的负载均衡策略？
+
+##### 如何优化 Kubernetes 的网络性能？
+
+##### 如何保护 Kubernetes 的服务？
 
 ### 存储管理和卷配置
 
@@ -4660,24 +4724,6 @@ kubectl edit hpa example-app
 ### 集群自动化和自动伸缩
 
 ### 服务网格和 Istio
-
-## 进阶篇
-
-### 高级调度器和定制调度器
-
-### 自定义控制器和运算符
-
-### 运维工具和生态系统
-
-### 多集群管理和联邦集群
-
-### 安全加固和审计
-
-### 网络插件和 CNI
-
-### 存储插件和 CSI 开发
-
-### 容器镜像和 OCI 标准
 
 ## 应用实践篇
 
