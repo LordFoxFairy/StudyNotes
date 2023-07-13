@@ -3505,7 +3505,7 @@ spec:
 
 在上述示例中，我们使用 Pod 反亲和性调度将相同标签为 `app: my-app` 的多个副本调度到不同的节点上。通过设置 `weight` 属性为 100，确保优先选择不在同一节点上的副本。
 
-### Kubernetes 控制器：应用程序的调度与管理
+### 控制器：应用程序的调度与管理
 
 #### 控制器概述
 
@@ -4821,7 +4821,7 @@ spec:
       targetPort: 8080
 ```
 
-在这个示例中，我们通过将 `sessionAffinity` 设置为 `ClientIP`，启用了基于客户端 IP 地址的会话亲和。这意味着来自同一 IP 地址的请求会被发送到同一个后端 Pod，以保持会话的一致性。
+在这个示例中，我们通过将 `sessionAffinity` 设置为 `ClientIP`，启用了基于客户端 IP 地址的会话亲和。这意味着**来自同一 IP 地址的请求会被发送到同一个后端 Pod，以保持会话的一致性**。
 
 ###### IP-based 负载均衡
 
@@ -4895,43 +4895,117 @@ spec:
 
 ###### TLS 加密支持
 
+##### Nginx Ingress
+
+##### 金丝雀发布
+
 #### Kubernetes 服务发现和负载均衡的最佳实践
 
-##### 如何选择正确的负载均衡策略？
+##### 如何选择正确的负载均衡策略
 
-##### 如何优化 Kubernetes 的网络性能？
+##### 如何优化 Kubernetes 的网络性能
 
-##### 如何保护 Kubernetes 的服务？
+##### 如何保护 Kubernetes 的服务
 
 ### 存储管理和卷配置
-
-#### 存储的概念和类型
-
+#### 存储管理
+##### 存储的概念
+##### 存储类型
+###### EmptyDir
+###### HostPath
+###### NFS
+###### ConfigMap
+###### Secret
+###### PersistentVolume
+###### StorageClass
+##### 存储管理示例
+###### 使用 ConfigMap 配置应用
+###### 使用 Secret 管理敏感数据
+#### 卷配置
+##### 卷的概念
+##### 卷类型
+###### emptyDir
+###### hostPath
+###### configMap
+###### secret
+###### persistentVolumeClaim
+###### downwardAPI
+###### projected
+##### 卷挂载（Volume Mounts）
+###### 卷挂载的概念
+###### 在 Pod 中使用卷挂载
+###### 在容器中使用卷挂载
+##### 卷配置示例
+###### 使用 emptyDir 存储临时数据
+###### 使用 persistentVolumeClaim 管理持久化数据
+###### 使用 projected 卷访问多个卷
 #### 使用 ConfigMap 进行配置管理
+
+1. ConfigMap 的概念
+2. 创建 ConfigMap
+3. 在 Pod 中使用 ConfigMap
+4. 在容器中使用 ConfigMap
+5. ConfigMap 示例
+    1. 将配置文件作为 ConfigMap 使用
+    2. 在容器中使用 ConfigMap
 
 #### 使用 Secret 进行密钥管理
 
-### 网络和安全性
+##### Secret 的概念
 
-#### Kubernetes 网络和通信的配置
+##### 创建 Secret
 
-#### 安全性和权限控制的实施
+##### 在 Pod 中使用 Secret
+
+##### 在容器中使用 Secret
+
+##### Secret 示例
+
+###### 将敏感数据作为 Secret 使用
+
+###### 在容器中使用 Secret
+
+#### 使用 PersistentVolume 进行存储管理
+
+##### PersistentVolume 的概念
+
+##### 创建 PersistentVolume
+
+##### 在 Pod 中使用 PersistentVolume
+
+##### 在容器中使用 PersistentVolume
+
+##### PersistentVolume 示例
+
+###### 使用 NFS 存储数据
+
+###### 使用 HostPath 存储数据
+
+#### 使用 PersistentVolumeClaim 进行存储配额管理
+
+##### PersistentVolumeClaim 的概念
+
+##### 创建 PersistentVolumeClaim
+
+##### 在 Pod 中使用 PersistentVolumeClaim
+
+##### 在容器中使用 PersistentVolumeClaim
+
+##### 示例：管理容器中的数据存储配额
+
+### kubernetes 网络架构
+
+###  kubernetes安全架构
 
 ### 监控和日志管理
 
-#### 监控 Kubernetes 集群和应用程序
-
-#### 日志管理和分析的方法
+### 命名空间和资源限制
 
 ### 扩展和自动化
 
-#### 扩展 Kubernetes 集群的方法和工具
+## 核心篇：构建可靠高效的容器化基础架构
 
-#### 自动化运维和管理 Kubernetes
-
-## 核心篇
-
-### 命名空间和资源限制
+### 标签和注解
 
 ### 自定义资源和扩展
 
@@ -4949,7 +5023,7 @@ spec:
 
 ### 服务网格和 Istio
 
-## 应用实践篇
+## 应用实践篇：构建可靠、安全的容器化应用生态
 
 ### 部署一个简单的应用程序
 
@@ -4971,7 +5045,7 @@ spec:
 
 ### 多集群部署和联邦集群
 
-## 实战演练篇
+## 实战演练篇：构建高可用集群系统
 
 ### 部署 MySQL
 
@@ -4995,10 +5069,6 @@ spec:
 
 ### 部署 fastdfs（部署高可用版本）
 
-## 扩展篇
+## 注意事项篇：在容器化平台中的关键注意事项
 
-### etcd 篇
-
-## 注意事项篇
-
-## 源码解析篇
+## 源码解析篇：深入学习 Kubernetes 源代码
