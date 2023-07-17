@@ -4694,6 +4694,8 @@ Kubernetes 使用内置的 DNS 服务来提供基于 DNS 的服务发现功能�
 
 让我们以一个具体的示例来说明。假设有一个名为 `myapp-service` 的服务，它所在的命名空间是 `default`。在这种情况下，Kubernetes 会为该服务分配一个 DNS 名称：`myapp-service.default.svc.cluster.local`。
 
+> Service域名格式：`$(service name).$(namespace).svc.cluster.local`，其中 cluster.local 为指定的集群的域名
+
 例如，在容器中可以使用服务名称来访问其他服务：
 
 ```yaml
@@ -4877,121 +4879,1705 @@ spec:
 
 ##### Kubernetes Service 和 Endpoint
 
+Kubernetes Service是一种抽象，用于定义一组应用程序的逻辑集合。它为这组应用程序提供了一个稳定的入口，并可通过该入口进行访问。而Endpoint是Service所代理的真实后端Pod的IP地址和端口。
+
+当你创建一个Service时，Kubernetes会自动创建一个对应的Endpoint。**Endpoint包含了Service所指向的Pod的IP地址和端口，这样当Service接收到请求时，它会将请求转发到这些Endpoint所代表的Pod上，从而实现了服务发现和负载均衡**。
+
 ##### Kubernetes Service 的类型
 
 ###### ClusterIP
 
+假设你有一个简单的应用程序，它运行在一个Deployment中，包含两个Pod，并且暴露端口为8080。你可以创建一个ClusterIP类型的Service来暴露这个应用程序：【集群内部访问】
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-service
+spec:
+  selector:
+    app: my-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+```
+
+在这个例子中，我们创建了一个名为`my-app-service`的Service，并指定了它的选择器（selector）为`app: my-app`，这样它就会代理带有标签`app=my-app`的Pod。通过Service，你可以通过`my-app-service`的ClusterIP地址（例如：`10.0.0.1`）访问这两个Pod。
+
 ###### NodePort
+
+假设你希望将上述的`my-app-service`在集群外部暴露，使得外部用户可以通过节点的IP地址和指定的端口来访问该服务。你可以创建一个NodePort类型的Service：【外网访问内部】
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-service
+spec:
+  selector:
+    app: my-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: NodePort
+```
+
+Kubernetes会自动在集群的每个节点上打开一个随机端口（例如：`32000`），然后将这个端口映射到Service的端口（在这个例子中为80）。现在，你可以通过任何节点的IP地址加上映射的端口（例如：`http://<Node-IP>:32000`）来访问该Service。
 
 ###### LoadBalancer
 
+假设你在云服务提供商上部署你的Kubernetes集群，并希望将你的应用程序暴露给公网。你可以创建一个LoadBalancer类型的Service：
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-service
+spec:
+  selector:
+    app: my-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: LoadBalancer
+```
+
+在这个例子中，Kubernetes会与云服务提供商协作，在该云平台上创建一个外部负载均衡器，并将该负载均衡器配置到Service的ClusterIP地址上。现在，你可以通过负载均衡器公开的IP地址来访问你的应用程序。
+
 ###### ExternalName
+
+假设你的Kubernetes集群中有一个应用程序，它需要访问集群外部的某个服务或域名，例如数据库、消息队列或外部API。在这种情况下，你可以使用ExternalName类型的Service来创建一个Kubernetes Service，将Service名称映射到集群外部的DNS名称。
+
+示例：假设你有一个外部服务（例如外部数据库），其DNS名称为`db.example.com`，并且你希望在Kubernetes集群内部通过`my-db-service`这个Service名称来访问它。
+
+你可以使用ExternalName类型的Service来实现这个映射：
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-db-service
+spec:
+  type: ExternalName
+  externalName: db.example.com
+```
+
+在这个示例中，我们创建了一个名为`my-db-service`的Service，并将其类型设置为ExternalName。同时，我们将`externalName`字段设置为`db.example.com`，这样当你在集群内部通过`my-db-service`来访问该Service时，Kubernetes会将其解析为`db.example.com`。
+
+###### ClusterIP: None (Headless Service)
+
+"ClusterIP: None"类型的Service是一种特殊的Service类型，它在一定程度上与其他类型的Service不同。在"ClusterIP: None"类型的Service中，Kubernetes不会为Service分配一个ClusterIP，而是会将DNS域名直接指向后端Pod的IP地址。
+
+- 示例配置：假设你有一个Deployment，其中包含了一组Pod，并且你希望将这些Pod通过Service暴露出去，但不需要为Service分配ClusterIP。你可以创建一个"ClusterIP: None"类型的Service：
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-service
+spec:
+  selector:
+    app: my-app
+  clusterIP: None
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+```
+
+在这个例子中，我们创建了一个名为`my-app-service`的Service，并将其`clusterIP`设置为`None`，从而声明它为"ClusterIP: None"类型的Service。这样，Kubernetes不会分配ClusterIP，并且DNS域名将直接指向后端Pod的IP地址。
+
+- Headless Service 的 DNS 解析：
+
+在"ClusterIP: None"类型的Service中，DNS解析将返回所有后端Pod的IP地址列表。每个Pod的DNS记录将采用以下格式：
+
+```php
+<pod-name>.<service-name>.<namespace>.svc.cluster.local
+```
+
+这将返回一个A记录（IPv4地址）或AAAA记录（IPv6地址），指向相应的Pod的IP地址。
+
+- 使用 Headless Service：
+
+"ClusterIP: None"类型的Service通常用于以下场景：
+
+1. StatefulSets：当使用StatefulSets来运行有状态的应用程序时，可以使用"ClusterIP: None"类型的Service来为每个Pod分配一个唯一的DNS名称，以实现有状态应用程序的访问和服务发现。
+2. 自定义DNS："ClusterIP: None"类型的Service也可以用于实现自定义的DNS服务，将特定域名解析为一组Pod的IP地址。
+3. 网络代理：在某些情况下，你可能需要直接访问后端Pod的IP地址，而不经过Service的ClusterIP。这时可以使用"ClusterIP: None"类型的Service来实现。
+
+##### Pod 的 hostname 和 subdomain 字段
+
+###### hostname
+
+`hostname` 字段用于为Pod设置一个特定的主机名。当你设置了`hostname`字段后，该Pod的主机名将被设置为`hostname`字段指定的值。这样，在Pod内部，你可以通过该主机名来访问自己。请注意，Pod的主机名必须符合DNS标准的主机名格式。示例：
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  hostname: my-pod-hostname
+  containers:
+  - name: my-container
+    image: nginx:latest
+```
+
+在这个示例中，我们创建了一个名为`my-pod`的Pod，并设置了`hostname`字段为`my-pod-hostname`。在Pod内部，你可以使用`my-pod-hostname`这个主机名来访问自己。
+
+###### subdomain
+
+`subdomain`字段用于将Pod的主机名添加到Service的DNS解析中，以实现跨命名空间的服务发现。`subdomain`的值必须与Service的`name`字段相同。这样，如果你在Pod中访问Service的名称，它将被解析为`<service-name>.<subdomain>.<namespace>.svc.cluster.local`。示例：
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  subdomain: my-subdomain
+  containers:
+  - name: my-container
+    image: nginx:latest
+```
+
+在这个示例中，我们创建了一个名为`my-pod`的Pod，并设置了`subdomain`字段为`my-subdomain`。这样，如果在Pod中访问名为`my-service`的Service，它将被解析为`my-service.my-subdomain.<namespace>.svc.cluster.local`。
+
+需要注意的是，`subdomain`字段只有在Pod是由Deployment、StatefulSet或DaemonSet创建的时候才会生效。对于直接创建的Pod，`subdomain`字段会被忽略。
+
+综上所述，`hostname`字段用于设置Pod的主机名，`subdomain`字段用于在Service的DNS解析中添加子域名，以实现跨命名空间的服务发现。
+
+> 注意的是，一旦设置了 hostname ，那么该 Pod 的主机名就被设置为 hostname 的值，而 subdomain  需要和 svc 中的 name 相同。 
 
 ##### Kubernetes Ingress
 
-###### Ingress Controller
+###### 为什么需要Ingress
+
+- Service 可以使用 NodePort 暴露集群外访问端口，但是性能低、不安全并且端口的范围有限。
+
+- Service 缺少七层（OSI 网络模型）的统一访问入口，负载均衡能力很低，不能做限流、验证非法用户、链路追踪等等。
+
+- Ingress 公开了从集群外部到集群内**服务**的 HTTP 和 HTTPS 路由。流量路由由 Ingress 资源上定义的规则控制。
+
+- 使用 Ingress 作为整个集群统一的入口，配置 Ingress 规则转发到对应的 Service 。
+
+###### ingress 安装
+
+- 自建集群采用[裸金属安装方式](https://kubernetes.github.io/ingress-nginx/deploy/#bare-metal-clusters)。 
+
+- 下载
+
+```bash
+wget https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.1.2/deploy/static/provider/baremetal/deploy.yaml
+```
+
+- 需要做如下修改：
+
+  - 修改 `k8s.gcr.io/ingress-nginx/controller:v1.1.2` 镜像为 `registry.cn-hangzhou.aliyuncs.com/google_containers/nginx-ingress-controller:v1.1.2` 。 
+  - 修改 `k8s.gcr.io/ingress-nginx/kube-webhook-certgen:v1.1.1` 镜像为 `registry.cn-hangzhou.aliyuncs.com/google_containers/kube-webhook-certgen:v1.1.1`。 
+  - 修改 Service 为 ClusterIP，无需 NodePort 模式。 
+  - 修改 Deployment 为 DaemonSet 。 
+  - 修改 Container 使用主机网络，直接在主机上开辟 80 、443 端口，无需中间解析，速度更快，所有各个节点的 80 和 443 端口不能被其它进程占用。 
+
+  ![image-20230419230521662](./assets/02-kubernetes篇（新）/image-20230419230521662.png)
+
+  - containers 使用主机网络，对应的 dnsPolicy 策略也需要改为主机网络的。 
+  - 修改 DaemonSet 的 `nodeSelector: ingress-node=true` 。这样只需要给 node 节点打上`` ingress-node=true`` 标签，即可快速的加入或剔除 ingress-controller的数量。
+
+  ![image-20230419230623625](./assets/02-kubernetes篇（新）/image-20230419230623625.png)
+
+- 创建文件
+
+```bash
+vi deploy.yaml
+```
+
+- deploy.yaml 修改的内容如下
+
+```yaml
+#GENERATED FOR K8S 1.20
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/name: ingress-nginx
+  name: ingress-nginx
+---
+apiVersion: v1
+automountServiceAccountToken: true
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/version: 1.1.2
+    helm.sh/chart: ingress-nginx-4.0.18
+  name: ingress-nginx
+  namespace: ingress-nginx
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade,post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+  labels:
+    app.kubernetes.io/component: admission-webhook
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/version: 1.1.2
+    helm.sh/chart: ingress-nginx-4.0.18
+  name: ingress-nginx-admission
+  namespace: ingress-nginx
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/version: 1.1.2
+    helm.sh/chart: ingress-nginx-4.0.18
+  name: ingress-nginx
+  namespace: ingress-nginx
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - pods
+  - secrets
+  - endpoints
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses/status
+  verbs:
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingressclasses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resourceNames:
+  - ingress-controller-leader
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - create
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade,post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+  labels:
+    app.kubernetes.io/component: admission-webhook
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/version: 1.1.2
+    helm.sh/chart: ingress-nginx-4.0.18
+  name: ingress-nginx-admission
+  namespace: ingress-nginx
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/version: 1.1.2
+    helm.sh/chart: ingress-nginx-4.0.18
+  name: ingress-nginx
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - endpoints
+  - nodes
+  - pods
+  - secrets
+  - namespaces
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses/status
+  verbs:
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingressclasses
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade,post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+  labels:
+    app.kubernetes.io/component: admission-webhook
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/version: 1.1.2
+    helm.sh/chart: ingress-nginx-4.0.18
+  name: ingress-nginx-admission
+rules:
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - validatingwebhookconfigurations
+  verbs:
+  - get
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/version: 1.1.2
+    helm.sh/chart: ingress-nginx-4.0.18
+  name: ingress-nginx
+  namespace: ingress-nginx
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ingress-nginx
+subjects:
+- kind: ServiceAccount
+  name: ingress-nginx
+  namespace: ingress-nginx
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade,post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+  labels:
+    app.kubernetes.io/component: admission-webhook
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/version: 1.1.2
+    helm.sh/chart: ingress-nginx-4.0.18
+  name: ingress-nginx-admission
+  namespace: ingress-nginx
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ingress-nginx-admission
+subjects:
+- kind: ServiceAccount
+  name: ingress-nginx-admission
+  namespace: ingress-nginx
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/version: 1.1.2
+    helm.sh/chart: ingress-nginx-4.0.18
+  name: ingress-nginx
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: ingress-nginx
+subjects:
+- kind: ServiceAccount
+  name: ingress-nginx
+  namespace: ingress-nginx
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade,post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+  labels:
+    app.kubernetes.io/component: admission-webhook
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/version: 1.1.2
+    helm.sh/chart: ingress-nginx-4.0.18
+  name: ingress-nginx-admission
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: ingress-nginx-admission
+subjects:
+- kind: ServiceAccount
+  name: ingress-nginx-admission
+  namespace: ingress-nginx
+---
+apiVersion: v1
+data:
+  allow-snippet-annotations: "true"
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/version: 1.1.2
+    helm.sh/chart: ingress-nginx-4.0.18
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/version: 1.1.2
+    helm.sh/chart: ingress-nginx-4.0.18
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+spec:
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - appProtocol: http
+    name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  - appProtocol: https
+    name: https
+    port: 443
+    protocol: TCP
+    targetPort: https
+  selector:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/name: ingress-nginx
+  type: ClusterIP # NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/version: 1.1.2
+    helm.sh/chart: ingress-nginx-4.0.18
+  name: ingress-nginx-controller-admission
+  namespace: ingress-nginx
+spec:
+  ports:
+  - appProtocol: https
+    name: https-webhook
+    port: 443
+    targetPort: webhook
+  selector:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/name: ingress-nginx
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: DaemonSet # Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/version: 1.1.2
+    helm.sh/chart: ingress-nginx-4.0.18
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+spec:
+  minReadySeconds: 0
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/name: ingress-nginx
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: controller
+        app.kubernetes.io/instance: ingress-nginx
+        app.kubernetes.io/name: ingress-nginx
+    spec:
+      dnsPolicy: ClusterFirstWithHostNet # dns 调整为主机网络 ，原先为 ClusterFirst
+      hostNetwork: true # 直接让 nginx 占用本机的 80 和 443 端口，这样就可以使用主机网络
+      containers:
+      - args:
+        - /nginx-ingress-controller
+        - --election-id=ingress-controller-leader
+        - --controller-class=k8s.io/ingress-nginx
+        - --ingress-class=nginx
+        - --report-node-internal-ip-address=true
+        - --configmap=$(POD_NAMESPACE)/ingress-nginx-controller
+        - --validating-webhook=:8443
+        - --validating-webhook-certificate=/usr/local/certificates/cert
+        - --validating-webhook-key=/usr/local/certificates/key
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: LD_PRELOAD
+          value: /usr/local/lib/libmimalloc.so
+        image: registry.cn-hangzhou.aliyuncs.com/google_containers/nginx-ingress-controller:v1.1.2 # 修改 k8s.gcr.io/ingress-nginx/controller:v1.1.2@sha256:28b11ce69e57843de44e3db6413e98d09de0f6688e33d4bd384002a44f78405c
+        imagePullPolicy: IfNotPresent
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - /wait-shutdown
+        livenessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /healthz
+            port: 10254
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: controller
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        - containerPort: 443
+          name: https
+          protocol: TCP
+        - containerPort: 8443
+          name: webhook
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: 10254
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources: # 资源限制
+          requests:
+            cpu: 100m
+            memory: 90Mi
+          limits: 
+            cpu: 500m
+            memory: 500Mi     
+        securityContext:
+          allowPrivilegeEscalation: true
+          capabilities:
+            add:
+            - NET_BIND_SERVICE
+            drop:
+            - ALL
+          runAsUser: 101
+        volumeMounts:
+        - mountPath: /usr/local/certificates/
+          name: webhook-cert
+          readOnly: true
+      nodeSelector:
+        node-role: ingress # 以后只需要给某个 node 打上这个标签就可以部署 ingress-nginx 到这个节点上了
+        # kubernetes.io/os: linux
+      serviceAccountName: ingress-nginx
+      terminationGracePeriodSeconds: 300
+      volumes:
+      - name: webhook-cert
+        secret:
+          secretName: ingress-nginx-admission
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+  labels:
+    app.kubernetes.io/component: admission-webhook
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/version: 1.1.2
+    helm.sh/chart: ingress-nginx-4.0.18
+  name: ingress-nginx-admission-create
+  namespace: ingress-nginx
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: admission-webhook
+        app.kubernetes.io/instance: ingress-nginx
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: ingress-nginx
+        app.kubernetes.io/part-of: ingress-nginx
+        app.kubernetes.io/version: 1.1.2
+        helm.sh/chart: ingress-nginx-4.0.18
+      name: ingress-nginx-admission-create
+    spec:
+      containers:
+      - args:
+        - create
+        - --host=ingress-nginx-controller-admission,ingress-nginx-controller-admission.$(POD_NAMESPACE).svc
+        - --namespace=$(POD_NAMESPACE)
+        - --secret-name=ingress-nginx-admission
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: registry.cn-hangzhou.aliyuncs.com/google_containers/kube-webhook-certgen:v1.1.1 # k8s.gcr.io/ingress-nginx/kube-webhook-certgen:v1.1.1@sha256:64d8c73dca984af206adf9d6d7e46aa550362b1d7a01f3a0a91b20cc67868660
+        imagePullPolicy: IfNotPresent
+        name: create
+        securityContext:
+          allowPrivilegeEscalation: false
+      nodeSelector:
+        kubernetes.io/os: linux
+      restartPolicy: OnFailure
+      securityContext:
+        fsGroup: 2000
+        runAsNonRoot: true
+        runAsUser: 2000
+      serviceAccountName: ingress-nginx-admission
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+  labels:
+    app.kubernetes.io/component: admission-webhook
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/version: 1.1.2
+    helm.sh/chart: ingress-nginx-4.0.18
+  name: ingress-nginx-admission-patch
+  namespace: ingress-nginx
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: admission-webhook
+        app.kubernetes.io/instance: ingress-nginx
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: ingress-nginx
+        app.kubernetes.io/part-of: ingress-nginx
+        app.kubernetes.io/version: 1.1.2
+        helm.sh/chart: ingress-nginx-4.0.18
+      name: ingress-nginx-admission-patch
+    spec:
+      containers:
+      - args:
+        - patch
+        - --webhook-name=ingress-nginx-admission
+        - --namespace=$(POD_NAMESPACE)
+        - --patch-mutating=false
+        - --secret-name=ingress-nginx-admission
+        - --patch-failure-policy=Fail
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: registry.cn-hangzhou.aliyuncs.com/google_containers/kube-webhook-certgen:v1.1.1 # k8s.gcr.io/ingress-nginx/kube-webhook-certgen:v1.1.1@sha256:64d8c73dca984af206adf9d6d7e46aa550362b1d7a01f3a0a91b20cc67868660
+        imagePullPolicy: IfNotPresent
+        name: patch
+        securityContext:
+          allowPrivilegeEscalation: false
+      nodeSelector:
+        kubernetes.io/os: linux
+      restartPolicy: OnFailure
+      securityContext:
+        fsGroup: 2000
+        runAsNonRoot: true
+        runAsUser: 2000
+      serviceAccountName: ingress-nginx-admission
+---
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/version: 1.1.2
+    helm.sh/chart: ingress-nginx-4.0.18
+  name: nginx
+spec:
+  controller: k8s.io/ingress-nginx
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  labels:
+    app.kubernetes.io/component: admission-webhook
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/version: 1.1.2
+    helm.sh/chart: ingress-nginx-4.0.18
+  name: ingress-nginx-admission
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: ingress-nginx-controller-admission
+      namespace: ingress-nginx
+      path: /networking/v1/ingresses
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validate.nginx.ingress.kubernetes.io
+  rules:
+  - apiGroups:
+    - networking.k8s.io
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - ingresses
+  sideEffects: None
+```
+
+- 给 Node 节点打标签
+
+```bash
+kubectl label node node1 node-role=ingress
+```
+
+```bash
+kubectl label node node2 node-role=ingress
+```
+
+> 当然，也可以给 Master 节点打标签，但是 **kubeadm 安装 k8s 集群的时候，会给 Master 节点打上污点**，即使打上标签，也不会进行 Pod 的调度；换言之，Ingress 也不会在 Master 节点上安装。
+
+- 安装 Ingress （需要关闭 Node 节点的 80 和 443 端口，不能有其他进程占用）
+
+```bash
+kubectl apply -f deploy.yaml
+```
+
+- 验证是否安装成功：只需要在部署了 ingress 的主机，执行如下的命令
+
+```bash
+netstat -ntlp | grep 80
+```
+
+```bash
+netstat -ntlp | grep 443
+```
+
+![image-20230419231309265](./assets/02-kubernetes篇（新）/image-20230419231309265.png)
+
+- 卸载
+
+```bash
+kubectl delete -f deploy.yaml
+```
+
+###### Ingress 原理
+
+![26.png](./assets/02-kubernetes篇（新）/1648106871470-c8097a0a-4a6c-4ce1-a5b5-0898641801ca.png)
+
+- 用户编写 Ingress 规则，说明哪个域名对应 k8s 集群中的哪个 Service。 
+- Ingress 控制器动态感知 Ingress 服务规则的变化，然后生成一段对应的 Nginx 的反向代理配置。
+- Ingress 控制器会将生成的 Nginx 配置写入到一个运行着的 Nginx 服务中，并动态更新。
 
 ###### Ingress 路由规则
 
+在使用Ingress之前，需要先安装一个Ingress Controller，如Nginx Ingress Controller。然后，你可以定义Ingress资源，并在其中指定路由规则。
+
+示例配置：假设你有两个应用程序，`app1`和`app2`，它们分别运行在不同的Deployment中，并且你想通过不同的域名将流量路由到它们。
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: my-ingress
+spec:
+  rules:
+    - host: app1.example.com
+      http:
+        paths:
+          - path: /foo
+            pathType: Prefix
+            backend:
+              service:
+                name: app1-service
+                port:
+                  number: 80
+    - host: app2.example.com
+      http:
+        paths:
+          - path: /bar
+            pathType: Prefix
+            backend:
+              service:
+                name: app2-service
+                port:
+                  number: 80
+```
+
+在这个例子中，我们创建了一个名为`my-ingress`的Ingress资源，并定义了两个规则。第一个规则将来自`app1.example.com`的流量路由到名为`app1-service`的Service，这个Service代理了`app1`应用程序的Pod。同样地，第二个规则将来自`app2.example.com`的流量路由到名为`app2-service`的Service，代理了`app2`应用程序的Pod。
+
+在上述示例中，当来自`app1.example.com/foo`的请求到达Ingress时，它将被路由到`app1-service`上的80端口。类似地，当来自`app2.example.com/bar`的请求到达Ingress时，它将被路由到`app2-service`上的80端口。
+
+Ingress的路由规则详解：
+
+| 字段                                     | 含义                                                         | 默认值          |
+| ---------------------------------------- | ------------------------------------------------------------ | --------------- |
+| `host`                                   | 指定请求的主机名（域名）。                                   | None            |
+| `http.paths`                             | 定义对应主机名的请求路径与后端Service的映射规则。            | None            |
+| `http.paths.path`                        | 指定请求的URL路径。                                          | None (必需字段) |
+| `http.paths.pathType`                    | 指定路径匹配类型，可以是`Exact`（精确匹配）或`Prefix`（前缀匹配）。 | Prefix          |
+| `http.paths.backend.service.name`        | 指定后端Service的名称。                                      | None            |
+| `http.paths.backend.service.port.number` | 指定后端Service的端口号。                                    | None            |
+
+在这个表格中，我们详细列出了每个Ingress路由规则字段的名称、含义以及默认值（如果有的话）。需要注意的是，`http.paths.path`字段是必需字段，没有默认值，因为它用于指定请求的URL路径，决定了哪些请求会被路由到相应的后端Service。
+
 ###### TLS 加密支持
+
+Kubernetes Ingress提供了TLS（传输层安全）加密支持，通过TLS加密，可以保护在网络上传输的数据的安全性和完整性。这允许你为Ingress资源配置HTTPS路由规则，为你的服务启用安全的加密通信。
+
+- **创建 Secret 对象**： 在Kubernetes中创建一个包含TLS证书和私钥的Secret对象。这些证书和私钥将用于加密和解密HTTPS通信。
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: tls-secret
+type: kubernetes.io/tls
+data:
+  tls.crt: BASE64_ENCODED_CERTIFICATE
+  tls.key: BASE64_ENCODED_PRIVATE_KEY
+```
+
+在上面的配置中，`tls.crt`和`tls.key`字段是Base64编码的TLS证书和私钥。
+
+或者
+
+```bash
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.cert -subj "/CN=example.com"
+
+kubectl create secret tls angle-tls --key tls.key --cert tls.cert
+```
+
+- **配置 Ingress 对象**
+
+在Ingress资源中定义TLS配置，指定哪些域名需要启用TLS加密。
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: my-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: / # 防止http访问跳转到https访问
+spec:
+  tls:
+    - hosts:
+        - example.com
+      secretName: tls-secret
+  rules:
+    - host: example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: my-service
+                port:
+                  number: 80
+```
+
+在上面的配置中，我们通过`tls`字段定义了TLS配置，指定了需要启用TLS加密的域名和相应的Secret对象。在这个例子中，`example.com`将使用名为`tls-secret`的Secret对象中的TLS证书和私钥来实现TLS加密。
+
+> TLS Secret必须位于与Ingress资源相同的命名空间中
+
+当Ingress和Service位于不同的命名空间时，为了确保正确的路由，需要在Ingress中使用完全限定的Service名称，即`<service-name>.<namespace>`。这样Ingress Controller才能正确地找到后端Service并将请求路由到相应的Pod。
+
+例如，如果Ingress在`ingress-namespace`命名空间中，但要路由到`my-service`在`my-namespace`命名空间中的Pod时，需要在Ingress规则中使用`my-service.my-namespace`来指定完全限定的Service名称。
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: my-ingress
+  namespace: ingress-namespace
+spec:
+  rules:
+    - host: example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: my-service.my-namespace
+                port:
+                  number: 80
+```
 
 ##### Nginx Ingress
 
+##### [Ingress 配置](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#proxy-buffering)
+
+###### Ingress中的nginx全局配置
+
+- 方式一：在安装的时候，添加配置。 
+
+```yaml
+apiVersion: v1
+data:
+  allow-snippet-annotations: "true" # Nginx 的全局配置
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/version: 1.1.2
+    helm.sh/chart: ingress-nginx-4.0.18
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+```
+
+- 方式二：编辑 cm 
+
+```bash
+kubectl edit cm ingress-nginx-controller -n ingress-nginx
+```
+
+```yaml
+# 配置项加上 
+data:
+  map-hash-bucket-size: "128" # Nginx 的全局配置
+  ssl-protocols: SSLv2
+```
+
+###### 限流配置
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rate-ingress
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"  
+    nginx.ingress.kubernetes.io/limit-rps: "1" # 限流
+spec:
+  rules:
+...
+```
+
+###### 默认后端配置
+
+Ingress允许您为未匹配任何已定义规则的请求配置默认后端。以下是一个示例：
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-http
+  namespace: default
+  annotations: 
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"  
+spec:
+  defaultBackend: # 指定所有未匹配的默认后端
+    service:
+      name: nginx-svc
+      port:
+        number: 80
+  rules: 
+    - host: tomcat.com 
+      http: 
+        paths:
+          - path: /abc
+            pathType: Prefix 
+            backend: 
+              service:
+                name: tomcat-svc
+                port:
+                  number: 8080
+```
+
+- tomcat.com 域名的 非 ``/abc ``开头的请求，都会转到 defaultBackend 。
+- 非 tomcat.com 域名下的所有请求，也会转到 defaultBackend 。
+
+###### 路径重写配置
+
+Ingress允许您重写传入请求的路径。以下是一个示例：
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /foo/?(.*)
+        backend:
+          serviceName: foo-service
+          servicePort: 80
+```
+
+在上面的示例中，我们将传入请求的路径重写为`/foo/$1`。匹配路径`/foo/*`的请求将被转发到名称为`foo-service`，端口为`80`的服务。
+
+###### 基于Cookie的配置
+
+Ingress允许您基于Cookie配置路由。以下是一个示例：
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-name: "route"
+    # 直接使用 nginx.ingress.kubernetes.io/affinity: "cookie"
+spec:
+  rules:
+  - host: example.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: example-service
+          servicePort: 80
+```
+
+在上面的示例中，我们将`affinity`设置为`cookie`，将`session-cookie-name`设置为`route`。这意味着请求将根据`route` cookie的值路由到相同的后端。
+
+###### Ingress 示例
+
+以下是一个Ingress的示例，根据主机头将流量路由到两个不同的服务：
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-ingress
+spec:
+  rules:
+  - host: foo.example.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: foo-service
+          servicePort: 80
+  - host: bar.example.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: bar-service
+          servicePort: 80
+```
+
+在上面的示例中，具有主机头`foo.example.com`的请求将路由到端口为`80`的`foo-service`，而具有主机头`bar.example.com`的请求将路由到端口为`80`的`bar-service`。
+
+###### 配置 SSL
+
+-  [官方地址](https://kubernetes.github.io/ingress-nginx/user-guide/tls/)。 
+
+-  生成证书语法
+
+```bash
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ${KEY_FILE} -out ${CERT_FILE} -subj "/CN=${HOST:baidu.com}/O=${HOST:baidu.com}"
+```
+
+```bash
+kubectl create secret tls ${CERT_NAME:baidu-tls} --key ${KEY_FILE:tls.key} --cert ${CERT_FILE:tls.cert}
+```
+
+- 示例：生成证书
+
+```bash
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.cert -subj "/CN=nginx.angle.com/O=tomcat.angle.com"
+```
+
+```bash
+kubectl create secret tls angle-tls --key tls.key --cert tls.cert
+```
+
+```bash
+kubectl get secrets angle-tls -o yaml
+```
+
+- 示例
+
+```bash
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-tls
+  namespace: default
+  annotations: 
+    kubernetes.io/ingress.class: "nginx"  
+spec:
+  tls:
+  - hosts:
+      - nginx.angle.com # 通过浏览器访问 https://nginx.angle.com
+      - tomcat.angle.com # 通过浏览器访问 https://tomcat.angle.com
+    secretName: angle-tls
+  rules:
+  - host: nginx.angle.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx-svc
+            port:
+              number: 80
+  - host: tomcat.angle.com 
+    http: 
+      paths:
+      - path: /
+        pathType: Prefix 
+        backend:
+          service:
+            name: tomcat-svc 
+            port:
+              number: 8080
+```
+
+- 测试
+
+```bash
+curl https://nginx.angle.com -k
+```
+
+![image-20230420133540860](./assets/02-kubernetes篇（新）/image-20230420133540860.png)
+
+注意：实际开发的时候，需要自己购买证书。
+
 ##### 金丝雀发布
 
-#### Kubernetes 服务发现和负载均衡的最佳实践
+###### 什么是金丝雀发布
 
-##### 如何选择正确的负载均衡策略
+金丝雀发布是一种流行的部署策略，用于逐步将新版本的应用程序部署到生产环境中。在Kubernetes中，使用Ingress对象可以实现金丝雀发布。
 
-##### 如何优化 Kubernetes 的网络性能
+具体来说，可以使用Ingress对象的多个规则来将流量路由到不同版本的应用程序。例如，可以将10%的流量路由到新版本的应用程序，而将90%的流量路由到旧版本的应用程序。在经过一段时间的测试和验证后，可以逐步将流量比例提高到100%，从而完成金丝雀发布。
 
-##### 如何保护 Kubernetes 的服务
+###### 前提工作
+
+- 部署 Service  和 Deployment
+
+```bash
+vi k8s-ingress-canary-deploy.yaml
+```
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: v1-deployment
+  labels:
+    app: v1-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: v1-pod
+  template:
+    metadata:
+      name: nginx
+      labels:
+        app: v1-pod
+    spec:
+      initContainers:
+        - name: alpine
+          image: alpine
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh","-c","echo v1-pod > /app/index.html;"]
+          volumeMounts:
+            - mountPath: /app
+              name: app    
+      containers:
+        - name: nginx
+          image: nginx:1.17.2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+            limits:
+              cpu: 250m
+              memory: 500Mi 
+          volumeMounts:
+            - name: app
+              mountPath: /usr/share/nginx/html             
+      volumes:
+        - name: app
+          emptyDir: {}       
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: v1-service
+  namespace: default
+spec:
+  selector:
+    app: v1-pod
+  type: ClusterIP
+  ports:
+  - name: nginx
+    protocol: TCP
+    port: 80
+    targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: v2-deployment
+  labels:
+    app: v2-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: v2-pod
+  template:
+    metadata:
+      name: v2-pod
+      labels:
+        app: v2-pod
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.17.2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+            limits:
+              cpu: 250m
+              memory: 500Mi 
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: v2-service
+  namespace: default
+spec:
+  selector:
+    app: v2-pod
+  type: ClusterIP
+  ports:
+  - name: nginx
+    protocol: TCP
+    port: 80
+    targetPort: 80
+```
+
+```bash
+kubectl apply -f k8s-ingress-canary-deploy.yaml
+```
+
+- 部署普通的 ingress
+
+```bash
+vi k8s-ingress-v1.yaml
+```
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-v1
+  namespace: default
+spec:
+  ingressClassName: "nginx"
+  rules:
+  - host: nginx.angle.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: v1-service
+            port:
+              number: 80
+```
+
+```bash
+kubectl apply -f k8s-ingress-v1.yaml
+```
+
+- 测试 ingress
+
+```bash
+# curl 来模拟请求
+curl -H "Host: canary.example.com" http://EXTERNAL-IP # EXTERNAL-IP 替换为 Nginx Ingress 自身对外暴露的 IP
+```
+
+```bash
+curl -H "Host: nginx.angle.com" http://192.168.183.102
+```
+
+###### 基于服务权重的流量切分
+
+以下是一个简单的示例Ingress对象，用于实现金丝雀发布：
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-canary
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/canary: "true" # 开启金丝雀 
+    nginx.ingress.kubernetes.io/canary-weight: "10" # 基于服务权重
+spec:
+  ingressClassName: "nginx"
+  rules:
+  - host: nginx.xudaxian.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: v2-service
+            port:
+              number: 80
+```
+
+在上述示例中，Ingress对象包含两个规则，每个规则将请求路由到不同版本的应用程序。第一个规则将以`/v1`为前缀的请求路由到旧版本的应用程序，第二个规则将以`/v2`为前缀的请求路由到新版本的应用程序。通过在Ingress对象的注释中设置`nginx.ingress.kubernetes.io/canary: "true"`，启用了金丝雀发布策略，`nginx.ingress.kubernetes.io/canary-weight: "10"`表示将新版本应用的程序的流量权重设置为10%。
+
+###### 基于Header的流量切分
+
+```bash
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-canary
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/canary: "true" # 开启金丝雀 
+    nginx.ingress.kubernetes.io/canary-by-header: "Region" # 基于请求头
+    # 如果 请求头 Region = always ，就路由到金丝雀版本；如果 Region = never ，就永远不会路由到金丝雀版本。
+    nginx.ingress.kubernetes.io/canary-by-header-value: "sz" # 自定义值
+    # 如果 请求头 Region = sz ，就路由到金丝雀版本；如果 Region != sz ，就永远不会路由到金丝雀版本。
+    # nginx.ingress.kubernetes.io/canary-by-header-pattern: "sh|sz"
+    # 如果 请求头 Region = sh 或 Region = sz ，就路由到金丝雀版本；如果 Region != sz 并且 Region != sz ，就永远不会路由到金丝雀版本。
+spec:
+  ingressClassName: "nginx"
+  rules:
+  - host: nginx.angle.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: v2-service
+            port:
+              number: 80
+```
+
+###### 基于 Cookie 的流量切分
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-canary
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/canary: "true" # 开启金丝雀 
+    nginx.ingress.kubernetes.io/canary-by-cookie: "vip" # 如果 cookie 是 vip = always ，就会路由到到金丝雀版本；如果 cookie 是 vip = never ，就永远不会路由到金丝雀的版本。
+spec:
+  ingressClassName: "nginx"
+  rules:
+  - host: nginx.xudaxian.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: v2-service
+            port:
+              number: 80
+```
 
 ### 存储管理和卷配置
+
 #### 存储管理
+
 ##### 存储的概念
+
 ##### 存储类型
+
 ###### EmptyDir
+
 ###### HostPath
+
 ###### NFS
+
 ###### ConfigMap
+
 ###### Secret
+
 ###### PersistentVolume
+
 ###### StorageClass
+
 ##### 存储管理示例
+
 ###### 使用 ConfigMap 配置应用
+
 ###### 使用 Secret 管理敏感数据
+
+###### 使用 PersistentVolume 进行存储管理
+
 #### 卷配置
+
 ##### 卷的概念
+
 ##### 卷类型
+
 ###### emptyDir
+
 ###### hostPath
+
 ###### configMap
+
 ###### secret
+
 ###### persistentVolumeClaim
-###### downwardAPI
-###### projected
+
 ##### 卷挂载（Volume Mounts）
+
 ###### 卷挂载的概念
+
 ###### 在 Pod 中使用卷挂载
+
 ###### 在容器中使用卷挂载
+
 ##### 卷配置示例
+
 ###### 使用 emptyDir 存储临时数据
+
 ###### 使用 persistentVolumeClaim 管理持久化数据
+
 ###### 使用 projected 卷访问多个卷
-#### 使用 ConfigMap 进行配置管理
 
-1. ConfigMap 的概念
-2. 创建 ConfigMap
-3. 在 Pod 中使用 ConfigMap
-4. 在容器中使用 ConfigMap
-5. ConfigMap 示例
-    1. 将配置文件作为 ConfigMap 使用
-    2. 在容器中使用 ConfigMap
+#### 配置管理
 
-#### 使用 Secret 进行密钥管理
+##### 配置管理概念
 
-##### Secret 的概念
+###### ConfigMap 的概念
 
-##### 创建 Secret
+###### 创建 ConfigMap
 
-##### 在 Pod 中使用 Secret
+###### 在 Pod 中使用 ConfigMap
 
-##### 在容器中使用 Secret
+###### 在容器中使用 ConfigMap
 
-##### Secret 示例
+###### 示例：将配置文件作为 ConfigMap 使用
 
-###### 将敏感数据作为 Secret 使用
+###### 示例：在容器中使用 ConfigMap
+
+##### 使用 Secret 进行密钥管理
+
+###### Secret 的概念
+
+###### 创建 Secret
+
+###### 在 Pod 中使用 Secret
 
 ###### 在容器中使用 Secret
 
-#### 使用 PersistentVolume 进行存储管理
+###### 示例：将敏感数据作为 Secret 使用
 
-##### PersistentVolume 的概念
+###### 示例：在容器中使用 Secret
 
-##### 创建 PersistentVolume
+#### 存储配额管理
 
-##### 在 Pod 中使用 PersistentVolume
+##### 存储配额管理
 
-##### 在容器中使用 PersistentVolume
+##### 使用 PersistentVolumeClaim 进行存储配额管理
 
-##### PersistentVolume 示例
+###### PersistentVolumeClaim 的概念
 
-###### 使用 NFS 存储数据
+###### 创建 PersistentVolumeClaim
 
-###### 使用 HostPath 存储数据
+###### 在 Pod 中使用 PersistentVolumeClaim
 
-#### 使用 PersistentVolumeClaim 进行存储配额管理
+###### 在容器中使用 PersistentVolumeClaim
 
-##### PersistentVolumeClaim 的概念
+###### 示例：管理容器中的数据存储配额
 
-##### 创建 PersistentVolumeClaim
-
-##### 在 Pod 中使用 PersistentVolumeClaim
-
-##### 在容器中使用 PersistentVolumeClaim
-
-##### 示例：管理容器中的数据存储配额
+##### 动态供应
 
 ### kubernetes 网络架构
 
