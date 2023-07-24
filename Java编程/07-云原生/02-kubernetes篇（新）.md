@@ -5966,7 +5966,86 @@ spec:
                   number: 80
 ```
 
-##### Nginx Ingress
+##### [Nginx Ingress](https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-manifests/)
+
+- 下载kubernetes-ingress
+
+```bash
+git clone https://github.com/nginxinc/kubernetes-ingress.git --branch v2.2.0
+
+cd kubernetes-ingress/deployments
+```
+
+- Configure RBAC
+
+```bash
+kubectl apply -f common/ns-and-sa.yaml
+kubectl apply -f rbac/rbac.yaml
+kubectl apply -f rbac/ap-rbac.yaml
+kubectl apply -f rbac/apdos-rbac.yaml
+```
+
+- 创建公共资源
+
+```bash
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.cert -subj "/CN=test.test.com"
+kubectl create secret tls ingress-tls --key tls.key --cert tls.cert
+
+
+kubectl apply -f default-server-secret.yaml
+kubectl apply -f common/nginx-config.yaml
+kubectl apply -f common/ingress-class.yaml
+```
+
+其中，编辑`default-server-secret.yaml`
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-tls
+  namespace: kubesphere-system
+  annotations: 
+    kubernetes.io/ingress.class: "nginx"  
+spec:
+  tls:
+  - hosts:
+      - test.test.com # 通过浏览器访问
+    secretName: ingress-tls
+  rules:
+  - host: test.test.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ks-console
+            port:
+              number: 80
+```
+
+- 部署 NGINX 入口控制器
+
+```bash
+kubectl apply -f deployment/nginx-ingress.yaml
+kubectl apply -f daemon-set/nginx-ingress.yaml
+```
+
+- 访问 NGINX 入口控制器
+
+```bash
+kubectl create -f service/nodeport.yaml
+```
+
+- 卸载 NGINX 入口控制器
+
+```bash
+kubectl delete namespace nginx-ingress
+kubectl delete clusterrole nginx-ingress
+kubectl delete clusterrolebinding nginx-ingress
+kubectl delete -f common/crds/
+```
 
 ##### [Ingress 配置](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#proxy-buffering)
 
@@ -6422,8 +6501,10 @@ metadata:
   namespace: default
   annotations:
     nginx.ingress.kubernetes.io/canary: "true" # 开启金丝雀 
+    
     nginx.ingress.kubernetes.io/canary-by-header: "Region" # 基于请求头
     # 如果 请求头 Region = always ，就路由到金丝雀版本；如果 Region = never ，就永远不会路由到金丝雀版本。
+    
     nginx.ingress.kubernetes.io/canary-by-header-value: "sz" # 自定义值
     # 如果 请求头 Region = sz ，就路由到金丝雀版本；如果 Region != sz ，就永远不会路由到金丝雀版本。
     # nginx.ingress.kubernetes.io/canary-by-header-pattern: "sh|sz"
@@ -6471,113 +6552,637 @@ spec:
 
 ### 存储管理和卷配置
 
-#### 存储管理
+#### 配置信息
 
-##### 存储的概念
+##### ConfigMap
 
-##### 存储类型
+在 Kubernetes 中，ConfigMap 是一种用于存储非敏感配置数据的对象。ConfigMap 可以存储键值对、属性文件、JSON 配置等数据，这些数据可以在容器中使用，从而将应用程序与配置数据分离开来。在本节中，我们将介绍 ConfigMap 的概念、创建 ConfigMap 的方法以及在 Pod 和容器中使用 ConfigMap 的方法。
 
-###### EmptyDir
+###### ConfigMap 的概念
 
-###### HostPath
+ConfigMap 是 Kubernetes 中的一种对象，用于存储非敏感的配置数据。ConfigMap 可以存储键值对、属性文件、JSON 配置等数据。ConfigMap 通常用于将应用程序与配置数据分离，从而使应用程序更易于管理和维护。
 
-###### NFS
+###### 创建 ConfigMap
 
-###### ConfigMap
+在 Kubernetes 中，可以通过多种方式创建 ConfigMap，如使用 kubectl 命令行工具、使用 YAML 文件、使用 Helm 等。下面我们将介绍使用 kubectl 命令行工具创建 ConfigMap 的方法。
 
-###### Secret
+1. **使用命令行创建 ConfigMap**
 
-###### PersistentVolume
+使用 kubectl 命令行工具可以创建 ConfigMap。下面是创建 ConfigMap 的基本语法：
 
-###### StorageClass
+```bash
+kubectl create configmap <configmap-name> <data-source>
+```
 
-##### 存储管理示例
+其中 `<configmap-name>` 是要创建的 ConfigMap 的名称，`<data-source>` 是要从中创建 ConfigMap 的数据源，可以是文件、目录、环境变量等。
 
-###### 使用 ConfigMap 配置应用
+例如，我们可以使用以下命令从文件创建 ConfigMap：
 
-###### 使用 Secret 管理敏感数据
+```bash
+kubectl create configmap my-config --from-file=config-file.txt
+```
 
-###### 使用 PersistentVolume 进行存储管理
+这将创建一个名为 `my-config` 的 ConfigMap，其中包含 `config-file.txt` 文件的内容。
 
-#### 卷配置
+我们还可以从目录创建 ConfigMap。例如，我们可以使用以下命令从目录创建 ConfigMap：
 
-##### 卷的概念
+```bash
+kubectl create configmap my-config --from-file=config-dir/
+```
 
-##### 卷类型
+这将创建一个名为 `my-config` 的 ConfigMap，其中包含 `config-dir/` 目录中的所有文件的内容。
 
-###### emptyDir
+我们还可以从环境变量创建 ConfigMap。例如，我们可以使用以下命令从环境变量创建 ConfigMap：
 
-###### hostPath
+```bash
+kubectl create configmap my-config --from-literal=foo=bar --from-literal=baz=qux
+```
 
-###### configMap
+这将创建一个名为 `my-config` 的 ConfigMap，其中包含两个键值对：`foo=bar` 和 `baz=qux`。
 
-###### secret
+2. **使用 YAML 文件创建 ConfigMap**
 
-###### persistentVolumeClaim
+我们还可以使用 YAML 文件创建 ConfigMap。下面是一个示例 YAML 文件：
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-config
+data:
+  config-file.txt: |
+    This is the content of the config file.
+```
+
+该文件包含了一个名为 `my-config` 的 ConfigMap，其中包含一个键值对，键为 `config-file.txt`，值为 `This is the content of the config file.`。
+
+我们可以使用以下命令将该文件中的配置应用于 Kubernetes：
+
+```bash
+kubectl apply -f configmap.yaml
+```
+
+这将创建一个名为 `my-config` 的 ConfigMap，并将其中的数据应用于 Kubernetes。
+
+###### 在 Pod 中使用 ConfigMap
+
+在 Pod 中使用 ConfigMap 可以使用环境变量或者配置文件的方式。下面我们将介绍如何在 Pod 中使用 ConfigMap。
+
+- **使用环境变量**
+
+我们可以在 Pod 中使用 ConfigMap 中的数据作为环境变量。以下是一个示例 YAML 文件：
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  containers:
+  - name: my-container
+    image: nginx
+    env:
+    - name: MY_CONFIG
+      valueFrom:
+        configMapKeyRef:
+          name: my-config
+          key: config-file.txt
+```
+
+该文件包含了一个名为 `my-pod` 的 Pod，其中包含一个名为 `my-container` 的容器。该容器使用 nginx 镜像，并将 ConfigMap `my-config` 中 `config-file.txt` 键值对的值作为名为 `MY_CONFIG` 的环境变量的值。
+
+我们可以使用以下命令将该文件中的配置应用于 Kubernetes：
+
+```bash
+kubectl apply -f pod.yaml
+```
+
+这将创建一个名为 `my-pod` 的 Pod，并将其中的数据应用于 Kubernetes。
+
+- **使用配置文件**
+
+我们还可以在 Pod 中使用 ConfigMap 中的数据作为配置文件。以下是一个示例 YAML 文件：
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  containers:
+  - name: my-container
+    image: nginx
+    volumeMounts:
+    - name: config-volume
+      mountPath: /etc/my-config
+  volumes:
+  - name: config-volume
+    configMap:
+      name: my-config
+```
+
+该文件包含了一个名为 `my-pod` 的 Pod，其中包含一个名为 `my-container` 的容器。该容器使用 nginx 镜像，并将 ConfigMap `my-config` 中的数据作为配置文件挂载到 `/etc/my-config` 目录中。
+
+我们可以使用以下命令将该文件中的配置应用于 Kubernetes：
+
+```bash
+kubectl apply -f pod.yaml
+```
+
+这将创建一个名为 `my-pod` 的 Pod，并将其中的数据应用于 Kubernetes。
+
+###### 在容器中使用 ConfigMap
+
+在容器中使用 ConfigMap 可以使用环境变量或者配置文件的方式。下面我们将介绍如何在容器中使用 ConfigMap。
+
+> 注意，镜像是在配置了configmap的k8s集群中使用
+
+- **使用环境变量**
+
+我们可以在容器中使用 ConfigMap 中的数据作为环境变量。以下是一个示例 Dockerfile 文件：
+
+```dockerfile
+FROM nginx
+COPY nginx.conf /etc/nginx/
+ENV MY_CONFIG=$(my-config)
+```
+
+该文件使用 nginx 镜像作为基础镜像，并将 `my-config` ConfigMap 中的数据作为名为 `MY_CONFIG` 的环境变量的值。
+
+我们可以使用以下命令将该 Dockerfile 构建为镜像：
+
+```bash
+docker build -t my-image .
+```
+
+这将构建名为 `my-image` 的 Docker 镜像。
+
+- **使用配置文件**
+
+我们还可以在容器中使用 ConfigMap 中的数据作为配置文件。以下是一个示例 Dockerfile 文件：
+
+```dockerfile
+FROM nginx
+COPY my-config /etc/my-config/
+```
+
+该文件使用 nginx 镜像作为基础镜像，并将 `my-config` ConfigMap 中的数据作为配置文件复制到 `/etc/my-config/` 目录中。
+
+我们可以使用以下命令将该 Dockerfile 构建为镜像：
+
+```bash
+docker build -t my-image .
+```
+
+这将构建名为 `my-image` 的 Docker 镜像。
+
+###### 示例：将配置文件作为 ConfigMap 使用
+
+假设我们有一个名为 `my-config` 的 ConfigMap，其中包含一个名为 `config-file.txt` 的键值对，其值为：
+
+```txt
+# This is the content of the config file.
+server {
+    listen 80;
+    server_name example.com;
+    root /usr/share/nginx/html;
+    index index.html;
+}
+```
+
+我们可以在 Pod 中使用该 ConfigMap 中的数据作为配置文件。以下是一个示例 YAML 文件：
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  containers:
+  - name: my-container
+    image: nginx
+    volumeMounts:
+    - name: config-volume
+      mountPath: /etc/nginx/conf.d
+  volumes:
+  - name: config-volume
+    configMap:
+      name: my-config
+```
+
+该文件包含了一个名为 `my-pod` 的 Pod，其中包含一个名为 `my-container` 的容器。该容器使用 nginx 镜像，并将 ConfigMap `my-config` 中的 `config-file.txt` 键值对的值作为配置文件挂载到 `/etc/nginx/conf.d` 目录中。
+
+我们可以使用以下命令将该文件中的配置应用于 Kubernetes：
+
+```bash
+kubectl apply -f pod.yaml
+```
+
+这将创建一个名为 `my-pod` 的 Pod，并将其中的数据应用于 Kubernetes。
+
+###### 示例：在容器中使用 ConfigMap
+
+假设我们有一个名为 `my-config` 的 ConfigMap，其中包含一个名为 `my-key` 的键值对，其值为 `my-value`。我们可以在容器中使用该 ConfigMap 中的数据作为环境变量。以下是一个示例 Deployment YAML 文件：
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+        - name: my-container
+          image: nginx
+          env:
+            - name: MY_KEY
+              valueFrom:
+                configMapKeyRef:
+                  name: my-config
+                  key: my-key
+```
+
+该文件创建一个名为 `my-app` 的 Deployment，其中包含一个名为 `my-container` 的容器。在该容器中，我们定义了一个环境变量 `MY_KEY`，它的值来自于 `my-config` ConfigMap 中的 `my-key` 键值对。
+
+在这个例子中，我们使用 `configMapKeyRef` 引用了 ConfigMap 中的数据，`name` 字段指定 ConfigMap 的名称，`key` 字段指定要使用的键名。
+
+通过这种方式，我们可以将 ConfigMap 中的配置数据注入到容器中，以便容器中的应用程序可以使用这些配置数据。
+
+##### Secret
+
+###### Secret 的概念
+
+在 Kubernetes 中，Secret 是一种**用于存储敏感数据的对象**。与 ConfigMap 类似，Secret 也可以用于将配置数据注入到 Pod 中。但是，与 ConfigMap 不同的是，Secret 存储的是敏感数据，例如密码、证书等，这些数据需要被加密并安全地存储。Kubernetes 会自动为 Secret 进行加密，并且只有被授权的用户才能访问 Secret。
+
+###### 创建 Secret
+
+与创建 ConfigMap 类似，创建 Secret 也可以使用 kubectl 命令行工具、使用 YAML 文件等多种方式。以下是一个使用 kubectl 命令行工具创建 Secret 的示例：
+
+```bash
+kubectl create secret generic my-secret --from-literal=username=myuser --from-literal=password=mypass
+```
+
+该命令会创建一个名为 `my-secret` 的 Secret，其中包含两个键值对：`username` 和 `password`，它们的值分别为 `myuser` 和 `mypass`。这两个键值对都是使用 `--from-literal` 参数指定的。
+
+创建 Secret 还可以使用 YAML 文件，以下是一个示例 YAML 文件：
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-secret
+type: Opaque
+data:
+  username: bXl1c2Vy
+  password: bXlwYXNz
+```
+
+在这个例子中，我们创建了一个名为 `my-secret` 的 Secret，其中包含两个键值对：`username` 和 `password`。这两个值都是经过 base64 编码的，这样可以保证敏感数据在存储时不会被明文存储。`type` 字段指定了 Secret 的类型，`data` 字段包含了 Secret 中的键值对。
+
+###### 在 Pod 中使用 Secret
+
+在 Pod 中使用 Secret 时，我们可以使用环境变量或者 Volume 的方式。以下是一个使用环境变量的示例 Deployment YAML 文件：
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+        - name: my-container
+          image: nginx
+          env:
+            - name: USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: my-secret
+                  key: username
+            - name: PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: my-secret
+                  key: password
+```
+
+该文件创建一个名为 `my-app` 的 Deployment，其中包含一个名为 `my-container` 的容器。在该容器中，我们定义了两个环境变量 `USERNAME` 和 `PASSWORD`，它们的值分别来自于 `my-secret` Secret 中的 `username` 和 `password` 键值对。
+
+###### 在容器中使用 Secret
+
+除了使用环境变量的方式，在容器中还可以使用 Volume 的方式使用 Secret。以下是一个使用 Volume 的示例 Deployment YAML 文件：
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+        - name: my-container
+          image: nginx
+          volumeMounts:
+            - name: my-secret
+              mountPath: /etc/my-secret
+              readOnly: true
+      volumes:
+        - name: my-secret
+          secret:
+            secretName: my-secret
+```
+
+该文件创建一个名为 `my-app` 的 Deployment，其中包含一个名为 `my-container` 的容器。在该容器中，我们定义了一个 Volume `my-secret`，它将 `my-secret` Secret 挂载到容器的 `/etc/my-secret` 目录中。
+
+在容器中，我们可以使用 `/etc/my-secret` 目录中的文件来访问 Secret 中的键值对。例如，我们可以使用以下命令来读取 `username` 键的值：
+
+```bash
+cat /etc/my-secret/username
+```
+
+###### 示例：将敏感数据作为 Secret 使用
+
+假设我们有一个包含敏感数据的 YAML 文件，例如：
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-secret
+type: Opaque
+data:
+  username: bXl1c2Vy
+  password: bXlwYXNz
+```
+
+我们可以使用 kubectl 命令行工具将其创建为一个名为 `my-secret` 的 Secret：
+
+```bash
+kubectl apply -f my-secret.yaml
+```
+
+此时，该 Secret 将被加密并安全地存储在 Kubernetes 集群中。
+
+###### 示例：在容器中使用 Secret
+
+假设我们有一个名为 `my-container` 的容器，我们想要在该容器中使用 `my-secret` Secret 中的 `username` 和 `password` 键值对。我们可以使用以下 YAML 文件创建一个使用 Volume 的 Deployment：
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+        - name: my-container
+          image: nginx
+          volumeMounts:
+            - name: my-secret
+              mountPath: /etc/my-secret
+              readOnly: true
+      volumes:
+        - name: my-secret
+          secret:
+            secretName: my-secret
+```
+
+在该 Deployment 中，我们创建了一个名为 `my-secret` 的 Volume，它使用 `my-secret` Secret 中的键值对。在容器中，我们可以使用 `/etc/my-secret` 目录中的文件来访问 Secret 中的键值对。例如，我们可以使用以下命令来读取 `username` 键的值：
+
+```bash
+cat /etc/my-secret/username
+```
+
+在这个例子中，我们使用了 Volume 的方式来将 Secret 中的数据挂载到容器中。除此之外，我们还可以使用环境变量的方式来使用 Secret 中的数据，具体方式与在 Pod 中使用 Secret 类似。
+
+#### 临时存储
+
+在 Kubernetes 中，有多种方式可以在 Pod 中存储临时数据，例如使用 EmptyDir、hostPath 或者卷挂载（Volume Mounts）。这些存储方式各有优缺点，我们可以根据具体的需求选择合适的方式。
 
 ##### 卷挂载（Volume Mounts）
 
 ###### 卷挂载的概念
 
+卷挂载（Volume Mounts）是 Kubernetes 中的一种存储方式，它可以将一个或多个卷（Volume）挂载到容器中。卷可以存储持久化数据，也可以存储临时数据。卷挂载通常用于存储需要共享的数据或者需要持久化存储的数据。
+
 ###### 在 Pod 中使用卷挂载
+
+在 Pod 中使用卷挂载是指将一个或多个卷（Volume）挂载到一个 Pod 中，Pod 中的多个容器可以访问这些卷中存储的数据。在 Pod 的 YAML 文件中，我们可以使用 `volumes` 字段来指定要使用的卷。
+
+以下是一个示例 YAML 文件，展示如何在 Pod 中使用卷挂载：
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  containers:
+    - name: my-container-1
+      image: nginx
+      volumeMounts:
+        - name: my-volume
+          mountPath: /data
+    - name: my-container-2
+      image: nginx
+      volumeMounts:
+        - name: my-volume
+          mountPath: /data
+  volumes:
+    - name: my-volume
+      emptyDir: {}
+```
+
+在这个例子中，我们创建了一个名为 `my-volume` 的 EmptyDir 卷，并将它挂载到名为 `my-container-1` 和 `my-container-2` 的容器中。这个示例展示了如何在一个 Pod 中使用卷挂载，并在多个容器之间共享数据。
 
 ###### 在容器中使用卷挂载
 
-##### 卷配置示例
+在容器中使用卷挂载时，我们可以在容器的 YAML 文件中将 Volume 挂载到容器的某个目录中。以下是一个示例 YAML 文件：
 
-###### 使用 emptyDir 存储临时数据
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  containers:
+    - name: my-container
+      image: nginx
+      volumeMounts:
+        - name: my-volume
+          mountPath: /data
+  volumes:
+    - name: my-volume
+      emptyDir: {}
+```
 
-###### 使用 persistentVolumeClaim 管理持久化数据
+在这个例子中，我们创建了一个名为 `my-volume` 的 Volume，并将它挂载到名为 `my-container` 的容器的 `/data` 目录中。该 Volume 使用了 EmptyDir 存储类型。
 
-###### 使用 projected 卷访问多个卷
+##### EmptyDir
 
-#### 配置管理
+###### EmptyDir 的概念
 
-##### 配置管理概念
+EmptyDir 是 Kubernetes 中的一种存储类型，它可以用于存储临时数据。EmptyDir 存储是基于 Pod 的生命周期的，当 Pod 被删除时，EmptyDir 中的数据也会被删除。EmptyDir 存储通常在容器之间共享数据时使用，例如在一个 Pod 中运行多个容器，它们需要共享一些数据时。
 
-###### ConfigMap 的概念
+###### 使用 EmptyDir 存储临时数据
 
-###### 创建 ConfigMap
+以下是一个使用 EmptyDir 存储临时数据的示例 YAML 文件：
 
-###### 在 Pod 中使用 ConfigMap
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  containers:
+    - name: my-container-1
+      image: nginx
+      volumeMounts:
+        - name: my-volume
+          mountPath: /data
+      command: ["/bin/bash", "-c", "echo 'hello world' > /data/hello.txt && sleep 1d"]
+    - name: my-container-2
+      image: nginx
+      volumeMounts:
+        - name: my-volume
+          mountPath: /data
+      command: ["/bin/bash", "-c", "cat /data/hello.txt"]
+  volumes:
+    - name: my-volume
+      emptyDir: {}
+```
 
-###### 在容器中使用 ConfigMap
+在这个例子中，我们创建了一个名为 `my-volume` 的 EmptyDir Volume，并将它挂载到名为 `my-container-1` 和 `my-container-2` 的容器中。`my-container-1` 容器会将 `hello world` 写入 `/data/hello.txt` 文件中，并在之后等待一天。`my-container-2` 容器会从 `/data/hello.txt` 中读取数据并输出到标准输出。这个示例展示了如何使用 EmptyDir 存储临时数据，并在多个容器之间共享数据。
 
-###### 示例：将配置文件作为 ConfigMap 使用
+##### hostPath
 
-###### 示例：在容器中使用 ConfigMap
+###### hostPath 的概念
 
-##### 使用 Secret 进行密钥管理
+**hostPath 是 Kubernetes 中的一种存储类型，它可以用于将主机上的文件系统挂载到 Pod 中。hostPath 存储通常用于存储临时数据或者需要持久化存储的数据**。但是，使用 hostPath 存储有一定的安全风险，因为容器可以访问主机上的所有文件系统。
 
-###### Secret 的概念
+###### 使用 hostPath 存储临时数据
 
-###### 创建 Secret
+以下是一个使用 hostPath 存储临时数据的示例 YAML 文件：
 
-###### 在 Pod 中使用 Secret
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  containers:
+    - name: my-container-1
+      image: nginx
+      volumeMounts:
+        - name: my-volume
+          mountPath: /data
+      command: ["/bin/bash", "-c", "echo 'hello world' > /data/hello.txt && sleep 1d"]
+    - name: my-container-2
+      image: nginx
+      volumeMounts:
+        - name: my-volume
+          mountPath: /data
+      command: ["/bin/bash", "-c", "cat /data/hello.txt"]
+  volumes:
+    - name: my-volume
+      hostPath:
+        path: /tmp/my-data
+```
 
-###### 在容器中使用 Secret
+在这个例子中，我们创建了一个名为 `my-volume` 的 hostPath Volume，并将它挂载到名为 `my-container-1` 和 `my-container-2` 的容器中。`my-container-1` 容器会将 `hello world` 写入 `/tmp/my-data/hello.txt` 文件中，并在之后等待一天。`my-container-2` 容器会从 `/tmp/my-data/hello.txt` 中读取数据并输出到标准输出。这个示例展示了如何使用 hostPath 存储临时数据，并在多个容器之间共享数据。注意，使用 hostPath 存储有一定的安全风险，因为容器可以访问主机上的所有文件系统。
 
-###### 示例：将敏感数据作为 Secret 使用
+#### 持久化存储
 
-###### 示例：在容器中使用 Secret
+##### PersistentVolume
 
-#### 存储配额管理
+###### `PersistentVolume` 的概念
+###### 创建 `PersistentVolume`
+###### `PersistentVolume` 的回收策略
+###### `PersistentVolume` 的生命周期
+###### 在 Pod 中使用 `PersistentVolume`
+###### 在容器中使用 `PersistentVolume`
 
-##### 存储配额管理
+##### PersistentVolumeClaim
 
-##### 使用 PersistentVolumeClaim 进行存储配额管理
-
-###### PersistentVolumeClaim 的概念
-
-###### 创建 PersistentVolumeClaim
-
-###### 在 Pod 中使用 PersistentVolumeClaim
-
-###### 在容器中使用 PersistentVolumeClaim
-
+###### `PersistentVolumeClaim` 的概念
+###### 创建 `PersistentVolumeClaim`
+###### 在 Pod 中使用 `PersistentVolumeClaim`
+###### 在容器中使用 `PersistentVolumeClaim`
+###### `PersistentVolume` 和 `PersistentVolumeClaim` 之间的关系
+###### `PersistentVolumeClaim` 的访问模式
 ###### 示例：管理容器中的数据存储配额
 
-##### 动态供应
+##### 卷配置示例
+
+###### 使用 `PersistentVolumeClaim` 管理持久化数据
+
+#### 分布式存储
+
+##### StorageClass
+
+###### `StorageClass` 的概念
+###### 在 Kubernetes 中使用 `StorageClass`
+
+##### 卷类型
+
+###### NFS
+###### GlusterFS
+###### CephFS
+
+##### 卷配置示例
+
+###### 使用 `StorageClass` 配置动态存储
+
+#### 云存储
+
+##### 卷类型
+
+###### AWS EBS
+###### Azure Disk
+###### GCE Persistent Disk
+
+##### 卷配置示例
+
+###### 使用云存储配置动态存储
+
+#### 动态供应
+
+##### 动态供应的概念
+
+###### 动态供应的概念
+###### Kubernetes 中的动态供应
 
 ### kubernetes 网络架构
 
