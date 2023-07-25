@@ -7128,61 +7128,297 @@ spec:
 ##### PersistentVolume
 
 ###### `PersistentVolume` 的概念
+
+**PersistentVolume 是 Kubernetes 中用于表示持久化存储资源的 API 对象。**它允许 Kubernetes 集群中的 Pod 访问独立于 Pod 生命周期的持久化存储。PersistentVolume 可以基于不同的存储后端（如本地存储、网络存储和云存储）创建，并且可以在不同的 Pod 之间共享和重用。
+
 ###### 创建 `PersistentVolume`
+
+可以通过 Kubernetes 中的 YAML 文件定义 `PersistentVolume`。下面是一个例子：
+
+```yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-pv
+spec:
+  storageClassName: fast
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /data
+```
+
+在这个例子中，我们创建了一个名为 `my-pv` 的 `PersistentVolume`，使用了 `fast` 存储类别，容量为 1GB，访问模式为 ReadWriteOnce，使用了 `hostPath` 存储后端。其中，`hostPath` 存储后端将数据存储在节点上的本地磁盘上。在实际生产环境中，通常会使用一些网络存储或云存储后端。
+
+> 注意，`fast` 存储类别这个是由 pvc 定义的。
+
 ###### `PersistentVolume` 的回收策略
+
+`PersistentVolume` 的回收策略定义了在 `PersistentVolumeClaim` 被删除时，`PersistentVolume` 中数据的处理方式。Kubernetes 支持四种回收策略：
+
+- `Retain`：保留 `PersistentVolume` 中的数据，不进行删除。
+- `Delete`：删除 `PersistentVolume` 中的数据，并将 `PersistentVolume` 标记为可用。
+- `Recycle`：删除 `PersistentVolume` 中的数据，并将 `PersistentVolume` 标记为可用。但是，数据并不会被完全清除，只会被清除到一个空目录中。
+- `Delete` 和 `Retain`：将数据从 `PersistentVolume` 中删除，并将 `PersistentVolume` 标记为不可用。但是，数据不会被彻底删除，可以手动进行恢复。
+
+在 `PersistentVolume` 的 YAML 文件中，可以通过 `spec.persistentVolumeReclaimPolicy` 字段指定回收策略。例如：
+
+```yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /data
+```
+
 ###### `PersistentVolume` 的生命周期
-###### 在 Pod 中使用 `PersistentVolume`
-###### 在容器中使用 `PersistentVolume`
+
+![39.png](./assets/02-kubernetes篇（新）/1648539183133-b087587e-2fba-4f90-b4c0-07d62f088488.png)
+
+PersistentVolume 的生命周期可以分为三个阶段：创建、使用和删除。
+
+- 在创建阶段，管理员通过定义 PersistentVolume 的 YAML 文件来创建 PersistentVolume。创建后，PersistentVolume 进入可用状态，并可以被 PersistentVolumeClaim 使用。
+
+- 在使用阶段，PersistentVolumeClaim 可以通过定义 YAML 文件来请求 PersistentVolume。如果存在符合要求的 PersistentVolume，则将其绑定到 PersistentVolumeClaim 上，并将其标记为正在使用。在 PersistentVolumeClaim 的 Pod 被删除之前，PersistentVolume 将一直保持绑定状态。
+
+- 在删除阶段，管理员可以删除 PersistentVolume，或者删除与 PersistentVolume 相关联的 PersistentVolumeClaim。当一个 PersistentVolumeClaim 被删除时，PersistentVolume 可以按照预定义的回收策略进行处理。
 
 ##### PersistentVolumeClaim
 
 ###### `PersistentVolumeClaim` 的概念
+
+**`PersistentVolumeClaim`（PVC）是  Kubernetes 中用于声明要求持久卷的 API 对象**。PVC 用于将存储需求与存储资源分离，Pod 可以通过 PVC  来请求持久化存储资源而不关心它们的实现。PVC 可以在多个 Pod 之间共享，使得多个 Pod  可以访问同一份数据，从而提高了数据的可靠性和可用性。
+
 ###### 创建 `PersistentVolumeClaim`
+
+在 Kubernetes 中，可以通过 YAML 文件创建 `PersistentVolumeClaim`。以下是一个 PVC 的 YAML 文件示例：
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+```
+
+在上面的示例中，`apiVersion` 和 `kind` 分别指定了 PVC 的 API 版本和类型。`metadata` 部分包含 PVC 的元数据信息，例如 PVC 的名称。`spec` 部分定义了 PVC 的规格，包括访问模式、存储容量等信息。
+
 ###### 在 Pod 中使用 `PersistentVolumeClaim`
-###### 在容器中使用 `PersistentVolumeClaim`
-###### `PersistentVolume` 和 `PersistentVolumeClaim` 之间的关系
+
+要在 Pod 中使用 `PersistentVolumeClaim`，需要在 Pod 的 YAML 文件中指定 `volumes` 和 `volumeMounts`。以下是一个 Pod 的 YAML 文件示例：
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  containers:
+  - name: my-container
+    image: my-image
+    volumeMounts:
+    - name: my-pvc-storage
+      mountPath: /data
+  volumes:
+  - name: my-pvc-storage
+    persistentVolumeClaim:
+      claimName: my-pvc
+```
+
+在上面的示例中，`volumes` 指定了 Pod 中要挂载的卷，`volumeMounts` 则指定了要将卷挂载到哪个容器的哪个路径下。在 `volumes` 中，我们指定了要挂载的 PVC 的名称，使用 `persistentVolumeClaim` 字段引用 PVC。在 `volumeMounts` 中，我们将卷挂载到了 `/data` 目录下。
+
+> 理解，pv是磁盘空间，pvc用于申请请求，pod使用的是pvc。
+
+###### **`PersistentVolume` 和 `PersistentVolumeClaim` 之间的关系（重要）**
+
+`PersistentVolume`（PV）是 Kubernetes 中用于表示持久化存储的 API 对象。PV 是存储资源的实际卷，而 PVC 是 Pod 中声明要使用的存储资源的声明。PVC 用于请求 PV，从而将存储需求与存储资源分离。
+
+在创建 PVC 时，需要指定 `accessModes` 和 `resources.requests.storage` 字段。`accessModes` 指定了 PVC 的访问模式，例如 `ReadWriteOnce`、`ReadWriteMany` 或 `ReadOnlyMany`。`resources.requests.storage` 指定了 PVC 所需的存储容量。当创建 PVC 时，Kubernetes 会查找匹配存储容量和访问模式的 PV，并将它们绑定在一起。如果找不到匹配的 PV，PVC 将处于 Pending 状态，直到新的 PV 可用为止。
+
+以下是一个完整的 `PersistentVolume` 和 `PersistentVolumeClaim` 的示例：
+
+首先，我们创建一个 `PersistentVolume` 的 YAML 文件，定义一个名为 `my-pv` 的持久化卷，类型为 `hostPath`，并指定路径为 `/mnt/data`。该 YAML 文件如下所示：
+
+```yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-pv
+spec:
+  storageClassName: "fast-storage" # 用于分组
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/data"
+```
+
+接下来，我们创建一个 `PersistentVolumeClaim` 的 YAML 文件，请求 500MB 的存储资源，并指定访问模式为 `ReadWriteOnce`。该 YAML 文件如下所示：
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-pvc
+spec:
+  storageClassName: "fast-storage"
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+```
+
+然后，我们创建一个使用 `PersistentVolumeClaim` 的 Pod 的 YAML 文件，挂载刚才创建的 PVC 到 `/data` 目录下。该 YAML 文件如下所示：
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  containers:
+  - name: my-container
+    image: nginx
+    volumeMounts:
+    - name: my-pvc-volume
+      mountPath: /data
+  volumes:
+  - name: my-pvc-volume
+    persistentVolumeClaim:
+      claimName: my-pvc
+```
+
+在上面的 YAML 文件中，我们指定了一个叫做 `my-pvc-volume` 的卷，使用 `persistentVolumeClaim` 字段引用了 PVC。`volumeMounts` 部分将卷挂载到了 `/data` 目录下。
+
+最后，我们将上面的三个 YAML 文件应用到 Kubernetes 中：
+
+```bash
+kubectl apply -f pv.yaml
+kubectl apply -f pvc.yaml
+kubectl apply -f pod.yaml
+```
+
+现在，我们可以检查 Pod 是否正常运行，并使用 `kubectl exec` 命令进入容器：
+
+```bash
+# kubectl get pvc # 可以通过这个命令查看 pvc 是否挂载正常
+kubectl get pods
+kubectl exec -it my-pod -- /bin/bash
+```
+
+在容器中，我们可以检查 `/data` 目录是否正确挂载了 PVC：
+
+```bash
+root@my-pod:/# df -h /data
+Filesystem               Size  Used Avail Use% Mounted on
+/dev/mapper/vg01-lv01    493M   10M  458M   3% /data
+```
+
+如上所示，容器中的 `/data` 目录挂载了一个大小为 500MB 的卷。这是因为我们在 PVC 中请求了 500MB 的存储空间。如果我们尝试在容器中写入超过 500MB 的数据，将会失败。这表明 PVC 可以帮助我们管理容器中的数据存储配额。
+
 ###### `PersistentVolumeClaim` 的访问模式
-###### 示例：管理容器中的数据存储配额
 
-##### 卷配置示例
+`PersistentVolumeClaim`（PVC）的访问模式指定了 PVC 可以被多少个 Pod 同时访问。以下是 PVC 的访问模式：
 
-###### 使用 `PersistentVolumeClaim` 管理持久化数据
+- `ReadWriteOnce`：一个 Pod 可以以读写模式挂载 PVC。
+- `ReadOnlyMany`：多个 Pod 可以以只读模式挂载 PVC。
+- `ReadWriteMany`：多个 Pod 可以以读写模式挂载 PVC。
+
+需要注意的是，不是所有的存储后端都支持所有的访问模式。在选择存储后端时，需要根据您的需求确定所需的访问模式。
 
 #### 分布式存储
 
 ##### StorageClass
 
 ###### `StorageClass` 的概念
+
+`StorageClass` 是 Kubernetes 中用于动态分配存储资源的机制。通过定义不同的 `StorageClass`，Kubernetes 可以使用不同的存储后端来满足不同的应用需求，并支持动态的存储资源分配。
+
+每个 `StorageClass` 都定义了一组参数，包括存储后端类型、卷类型、卷访问模式、存储配额等。当 Kubernetes 集群中的 Pod 请求动态分配存储资源时，Kubernetes 将根据 `StorageClass` 的定义动态创建一个 `PersistentVolume` 对象，并将其绑定到请求的 `PersistentVolumeClaim` 对象上，从而满足 Pod 对持久化存储的需求。
+
+> `StorageClass` 主要用于管理动态分配的持久化存储资源，它允许 Kubernetes 集群管理员为不同的应用或不同的命名空间定义不同类型、不同规格的存储资源。因此，当你需要使用第三方存储提供商的存储后端或者定制的存储资源时，你可以使用 `StorageClass` 来定义这些存储资源。
+
 ###### 在 Kubernetes 中使用 `StorageClass`
 
-##### 卷类型
+要在 Kubernetes 中使用 `StorageClass`，您需要首先创建一个 `StorageClass` 对象。下面是一个使用 `hostPath` 存储后端的 `StorageClass` 的示例：
 
-###### NFS
-###### GlusterFS
-###### CephFS
+```yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: my-storage-class
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+parameters:
+  type: local
+```
 
-##### 卷配置示例
+在上面的示例中，我们定义了一个名为 `my-storage-class` 的 `StorageClass` 对象。`provisioner` 字段指定了用于管理存储资源的插件，这里我们指定为 `kubernetes.io/no-provisioner`，表示不使用任何默认的存储插件。`volumeBindingMode` 字段指定了卷绑定模式，这里我们将其设置为 `WaitForFirstConsumer`，表示卷将在第一个使用它的 Pod 被调度后才会被绑定。`allowVolumeExpansion` 字段指定了卷是否允许扩容。`parameters` 字段指定了一组键值对，用于定义存储后端的参数，这里我们将 `type` 设置为 `local`，表示使用 `hostPath` 存储后端。
+
+创建 `StorageClass` 对象后，您可以在 `PersistentVolumeClaim` 中指定该 `StorageClass`，以便 Kubernetes 使用该 `StorageClass` 分配存储资源。例如，下面是一个使用 `my-storage-class` 的 `PersistentVolumeClaim` 的示例：
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-pvc
+spec:
+  storageClassName: my-storage-class
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+```
+
+在上面的示例中，我们在 `PersistentVolumeClaim` 中指定了 `storageClassName` 为 `my-storage-class`，这表示 Kubernetes 应该使用 `my-storage-class` 分配存储资源。
+
+##### NFS
+
+###### 安装 NFS
+
+###### 使用 NFS
 
 ###### 使用 `StorageClass` 配置动态存储
 
-#### 云存储
+##### GlusterFS
 
-##### 卷类型
+###### 安装 GlusterFS
 
-###### AWS EBS
-###### Azure Disk
-###### GCE Persistent Disk
+###### 使用 GlusterFS
 
-##### 卷配置示例
+###### 使用 `StorageClass` 配置动态存储
 
-###### 使用云存储配置动态存储
+##### CephFS
+
+###### 安装 CephFS
+
+###### 使用 CephFS
+
+###### 使用 `StorageClass` 配置动态存储
 
 #### 动态供应
 
 ##### 动态供应的概念
 
-###### 动态供应的概念
-###### Kubernetes 中的动态供应
+##### Kubernetes 中的动态供应
 
 ### kubernetes 网络架构
 
