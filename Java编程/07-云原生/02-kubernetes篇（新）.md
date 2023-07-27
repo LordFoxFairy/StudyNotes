@@ -1205,7 +1205,7 @@ kubectl run nginx-pod --image=nginx --dry-run=client -o yaml > demo.yaml
 - **Job**：Job 是一次性任务，它创建一个或多个 Pod 来完成任务，并确保任务成功完成后自动终止。
 - **CronJob**：CronJob 是定时任务，它基于 Cron 表达式创建一个 Job，用于在指定的时间间隔内执行任务。
 
-### 标签、选择器和命名空间
+### 标签、选择器
 
 #### 对象名称规范
 
@@ -1245,158 +1245,6 @@ spec: containers:
 
 - UID 是由 Kubernetes 系统生成的，唯一标识某个 Kubernetes 对象的字符串。
 - Kubernetes集群中，每创建一个对象，都有一个唯一的 UID 。用于区分多次创建的同名对象（如前面所述，按照名字删除对象后，重新再创建同名对象时，两次创建的对象 name 相同，但是 UID 不同。）
-
-#### 名称空间（命名空间）
-
-##### 概述
-
-在 Kubernetes 中名称空间是用来对象资源进行隔离的。 默认情况下，Kubernetes 会初始化四个名称空间：
-
-```bash
-kubectl get ns
-```
-
-- default：所有没有指定 namespace 的对象都会被分配到此名称空间中。
-
-- kube-node-lease：Kubernetes 集群节点之间的心跳维护，V 1.13 开始引入。
-
-- kube-system：Kubernetes 系统创建的对象放在此名称空间中。
-
-- kube-public：此名称空间是 Kubernetes 集群安装时自动创建的，并且所有的用户都可以访问（包括未认证的用户），主要是为集群预留的，如：在某些情况中，某些 Kubernetes 对象应用应该能被所有集群用户访问到。
-
-##### 名称空间在实际开发中如何划分
-
-- 基于环境隔离，如：dev（开发）、test（测试）、prod（生产）等。
-
-- 基于产品线隔离，如：前端、后端、中间件、大数据、Android、iOS、小程序等。
-
-- 基于团队隔离，如：企业发展事业部、技术工程事业部、云平台事业部等。
-
-##### 名称空间的特点
-
-- 名称空间资源隔离、网络不隔离，如：配置文件不可以跨名称空间访问，但是网络访问可以跨名称空间访问。
-
-- 默认情况下，安装 Kubernetes 集群的时候，会初始化一个 `default` 名称空间，用来承载那些没有指定名称空间的 Pod 、Service 、Deployment 等对象。
-
-##### 名称空间的命名规则
-
-- 不能带小数点（`.`）。
-
-- 不能带下划线（`_`）。
-
-- 使用数字、小写字母或减号（`-`）组成的字符串。
-
-##### 名称空间的操作
-
-- 示例：创建和删除名称空间（yaml ）
-
-```yaml
-vim k8s-namespace.yaml
-```
-
-```yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name:  demo # 名称空间的名字
-spec: {}  
-status: {}
-```
-
-```bash
-# 创建名称空间
-kubectl apply -f k8s-namespace.yaml
-```
-
-```bash
-kubectl delete -f k8s-namespace.yaml
-```
-
-- 示例：创建和删除名称空间（命令行 ）
-
-```bash
-# 创建名称空间
-kubectl create ns demo
-```
-
-```bash
-kubectl delete ns demo
-```
-
-- 示例：创建 Pod 的同时，指定自定义的名称空间（yaml）
-
-```bash
-vim k8s-pod.yaml
-```
-
-```yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name:  demo # 名称空间的名字
-spec: {} # 默认为空，其实可以不写
-status: {} # 默认为空，其实可以不写
-
-# 以上是 namespace 
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: nginx-pod
-  namespace: demo # 指定自定义的名称空间，如果不写，默认为 default
-  labels:
-    app: nginx
-spec:
-  containers:
-  - name: nginx
-    image: nginx
-    resources: # 后面会讲
-      limits:
-        cpu: 200m
-        memory: 500Mi
-      requests:
-        cpu: 100m
-        memory: 200Mi
-    ports:
-    - containerPort:  80
-      name:  http
-    volumeMounts:
-    - name: localtime
-      mountPath: /etc/localtime
-  volumes:
-    - name: localtime
-      hostPath:
-        path: /usr/share/zoneinfo/Asia/Shanghai
-  restartPolicy: Always 
-
-  # 以上的 Pod
-```
-
-```bash
-kubectl apply -f k8s-pod.yaml
-```
-
-##### Service 与 Pod 的 DNS
-
-- 当创建一个 Service 的时候，Kubernetes 会创建一个相应的 [DNS 条目](https://kubernetes.io/zh/docs/concepts/services-networking/dns-pod-service/)。
-
-- 该条目的形式是`<service-name>`.`<namespace-name>`.svc.cluster.local，这意味着如果容器中只使用`<服务名称>`，它将被解析到本地名称空间的服务器。这对于跨多个名字空间（如开发、测试和生产） 使用相同的配置非常有用。如果你希望跨名字空间访问，则需要使用完全限定域名（FQDN）。
-
-#####  注意事项
-
-大多数的 Kubernetes 资源（如：Pod、Service、副本控制器等）都位于某些名称空间中，但是名称空间本身并不在名称空间中，而且底层资源（如：node 和持久化卷）不属于任何命名空间。
-
-- 查看在名称空间中的资源：
-
-```bash
-kubectl api-resources --namespaced=true
-```
-
-- 查看不在名称空间中的资源：
-
-```bash
-kubectl api-resources --namespaced=false
-```
 
 #### 标签和选择器
 
@@ -1557,6 +1405,226 @@ metadata:
 - kubelet 额外参数配置： `/etc/sysconfig/kubelet`。
 
 - kubelet配置位置： `/var/lib/kubelet/config.yaml`。
+
+### 命名空间和资源限制
+
+####  命名空间
+
+##### 概述
+
+在 Kubernetes 中名称空间是用来对象资源进行隔离的。 默认情况下，Kubernetes 会初始化四个名称空间：
+
+```bash
+kubectl get ns
+```
+
+- default：所有没有指定 namespace 的对象都会被分配到此名称空间中。
+
+- kube-node-lease：Kubernetes 集群节点之间的心跳维护，V 1.13 开始引入。
+
+- kube-system：Kubernetes 系统创建的对象放在此名称空间中。
+
+- kube-public：此名称空间是 Kubernetes 集群安装时自动创建的，并且所有的用户都可以访问（包括未认证的用户），主要是为集群预留的，如：在某些情况中，某些 Kubernetes 对象应用应该能被所有集群用户访问到。
+
+##### 名称空间在实际开发中如何划分
+
+- 基于环境隔离，如：dev（开发）、test（测试）、prod（生产）等。
+
+- 基于产品线隔离，如：前端、后端、中间件、大数据、Android、iOS、小程序等。
+
+- 基于团队隔离，如：企业发展事业部、技术工程事业部、云平台事业部等。
+
+##### 名称空间的特点
+
+- 名称空间资源隔离、网络不隔离，如：配置文件不可以跨名称空间访问，但是网络访问可以跨名称空间访问。
+
+- 默认情况下，安装 Kubernetes 集群的时候，会初始化一个 `default` 名称空间，用来承载那些没有指定名称空间的 Pod 、Service 、Deployment 等对象。
+
+##### 名称空间的命名规则
+
+- 不能带小数点（`.`）。
+
+- 不能带下划线（`_`）。
+
+- 使用数字、小写字母或减号（`-`）组成的字符串。
+
+##### 名称空间的操作
+
+- 示例：创建和删除名称空间（yaml ）
+
+```yaml
+vim k8s-namespace.yaml
+```
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name:  demo # 名称空间的名字
+spec: {}  
+status: {}
+```
+
+```bash
+# 创建名称空间
+kubectl apply -f k8s-namespace.yaml
+```
+
+```bash
+kubectl delete -f k8s-namespace.yaml
+```
+
+- 示例：创建和删除名称空间（命令行 ）
+
+```bash
+# 创建名称空间
+kubectl create ns demo
+```
+
+```bash
+kubectl delete ns demo
+```
+
+- 示例：创建 Pod 的同时，指定自定义的名称空间（yaml）
+
+```bash
+vim k8s-pod.yaml
+```
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name:  demo # 名称空间的名字
+spec: {} # 默认为空，其实可以不写
+status: {} # 默认为空，其实可以不写
+
+# 以上是 namespace 
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+  namespace: demo # 指定自定义的名称空间，如果不写，默认为 default
+  labels:
+    app: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    resources: # 后面会讲
+      limits:
+        cpu: 200m
+        memory: 500Mi
+      requests:
+        cpu: 100m
+        memory: 200Mi
+    ports:
+    - containerPort:  80
+      name:  http
+    volumeMounts:
+    - name: localtime
+      mountPath: /etc/localtime
+  volumes:
+    - name: localtime
+      hostPath:
+        path: /usr/share/zoneinfo/Asia/Shanghai
+  restartPolicy: Always 
+
+  # 以上的 Pod
+```
+
+```bash
+kubectl apply -f k8s-pod.yaml
+```
+
+##### Service 与 Pod 的 DNS
+
+- 当创建一个 Service 的时候，Kubernetes 会创建一个相应的 [DNS 条目](https://kubernetes.io/zh/docs/concepts/services-networking/dns-pod-service/)。
+
+- 该条目的形式是`<service-name>`.`<namespace-name>`.svc.cluster.local，这意味着如果容器中只使用`<服务名称>`，它将被解析到本地名称空间的服务器。这对于跨多个名字空间（如开发、测试和生产） 使用相同的配置非常有用。如果你希望跨名字空间访问，则需要使用完全限定域名（FQDN）。
+
+#####  注意事项
+
+大多数的 Kubernetes 资源（如：Pod、Service、副本控制器等）都位于某些名称空间中，但是名称空间本身并不在名称空间中，而且底层资源（如：node 和持久化卷）不属于任何命名空间。
+
+- 查看在名称空间中的资源：
+
+```bash
+kubectl api-resources --namespaced=true
+```
+
+- 查看不在名称空间中的资源：
+
+```bash
+kubectl api-resources --namespaced=false
+```
+
+####  资源限制
+
+##### 什么是 Kubernetes 资源限制
+
+Kubernetes 资源限制是指在 Pod 或容器级别设置的 CPU、内存、存储和网络带宽等计算资源限制。资源限制通过 Kubernetes API 对象中的资源限制字段来设置。
+
+##### Kubernetes 中有哪些资源可以限制
+
+在 Kubernetes 中，可以设置的资源限制包括：
+
+- CPU：表示容器可以使用的 CPU 时间片，通常以 CPU 核数为单位。
+- 内存：表示容器可以使用的内存量，通常以字节或者以可读性更好的单位（例如 MB 或 GB）表示。
+- 存储：表示容器可以使用的存储量，可以设置存储容量上限和存储类型等参数。
+- 网络带宽：表示容器可以使用的网络带宽上限。
+
+##### 为什么需要资源限制
+
+在 Kubernetes 集群中，可能会有多个应用程序和服务共享同一组计算资源。如果某个应用程序或服务没有限制资源使用，它可能会占用大量的 CPU、内存或存储等资源，导致其他应用程序或服务无法正常运行。
+
+资源限制可以帮助 Kubernetes 管理者控制容器使用的计算资源，避免资源竞争问题，从而提高集群的可靠性和稳定性。
+
+##### 如何设置资源限制
+
+在 Kubernetes 中，可以通过 Pod 或容器的 YAML 文件来设置资源限制。以下是一个 Pod YAML 文件的示例，其中设置了 CPU 和内存的资源限制：
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  containers:
+  - name: my-container
+    image: nginx
+    resources:
+      limits:
+        cpu: "1"
+        memory: "512Mi"
+      requests:
+        cpu: "0.5"
+        memory: "256Mi"
+```
+
+在上面的 YAML 文件中，使用 `resources` 字段来设置资源限制。其中，`limits` 字段用于设置资源的上限值，`requests` 字段用于设置容器对资源的最小需求值。
+
+##### 如何检查资源限制是否生效
+
+可以使用以下命令来检查 Kubernetes 中的资源限制是否生效：
+
+```bash
+kubectl describe pod <pod-name>
+```
+
+运行上述命令后，将会输出 Pod 的详细信息，其中包括容器的资源限制信息。如果资源限制设置正确并生效，将会在输出中看到类似以下的内容：
+
+```yaml
+Limits:
+  cpu:     1
+  memory:  512Mi
+Requests:
+  cpu:     500m
+  memory:  256Mi
+```
+
+这表示容器被限制在使用 1 个 CPU 核心和最多 512 MB 的内存，同时请求了至少 500m CPU 核心和 256 MB 的内存。如果资源限制设置有误或者没有生效，将会在输出中看到相应的错误或者警告信息。
 
 ###  容器配置与资源管理
 
@@ -2264,7 +2332,7 @@ kubectl命令的对应关系：
 
 请注意，这里列出的命令只是一些常见的kubectl命令示例，还有更多的kubectl命令和选项可用。可以通过运行 `kubectl --help` 命令或访问 Kubernetes 官方文档了解更多详细信息和命令选项。
 
-## 进阶篇：构建高可用、高性能的容器化平台
+## 核心篇：构建高可用、高性能的容器化平台
 
 ### Pod：最小调度单位
 
@@ -7398,14 +7466,6 @@ spec:
 
 ###### 使用 `StorageClass` 配置动态存储
 
-##### GlusterFS
-
-###### 安装 GlusterFS
-
-###### 使用 GlusterFS
-
-###### 使用 `StorageClass` 配置动态存储
-
 ##### CephFS
 
 ###### 安装 CephFS
@@ -7420,35 +7480,1204 @@ spec:
 
 ##### Kubernetes 中的动态供应
 
+### kubernetes 调度原理
+
+#### Kubernetes 调度器概述
+##### 调度器的角色和功能
+
+Kubernetes 调度器是 Kubernetes 集群的控制平面组件之一，主要负责将 Pod 调度到集群中的节点上。调度器的主要角色和功能包括：
+
+- 监视集群中未调度的 Pod。
+- 根据 Pod 的需求和节点的资源情况，选择最佳的节点进行调度。
+- 向 API Server 发送调度请求，将 Pod 调度到选定的节点上。
+- 监视和处理调度失败、节点故障等异常情况。
+
+##### 调度器的架构和组件
+
+Kubernetes 调度器的架构和组件主要包括以下几个部分：
+
+- 队列：调度器会将需要调度的 Pod 放入队列中，按照优先级和时间顺序进行调度。
+- 预选器（Predicate）：调度器会对队列中的 Pod 进行预选，筛选出满足 Pod 要求的节点，例如 CPU、内存等资源的要求，节点上已有的 Pod 的数量等。
+- 优选器（Priority）：调度器会对经过预选的节点进行评分，并根据评分结果选择最佳的节点进行调度。
+- 绑定器（Binding）：调度器将调度成功的 Pod 绑定到选定的节点上，并向 API Server 发送绑定请求。
+
+#### 调度器的工作流程
+
+##### Pod 的调度流程
+
+Kubernetes 调度器的工作流程包括以下三个步骤：
+
+###### 预选和优先级
+
+调度器首先会对待调度的 Pod 进行预选，筛选出满足 Pod 要求的节点，例如 CPU、内存等资源的要求，节点上已有的 Pod 的数量等。然后，调度器会对经过预选的节点进行评分，并根据评分结果选择最佳的节点进行调度。
+
+###### 选定节点
+
+调度器选定节点的过程包括以下几个步骤：
+
+- 获取所有未被标记为 unschedulable 的节点。
+- 根据节点的资源和 Pod 的要求进行匹配。
+- 对符合要求的节点进行评分，选择最佳的节点。
+- 如果有多个节点得分相同，则按照一定的规则进行选择（例如随机选择）。
+
+###### 绑定 Pod
+
+调度器将调度成功的 Pod 绑定到选定的节点上，并向 API Server 发送绑定请求。
+
+##### 调度器的算法和策略
+
+###### 调度器的默认算法
+
+Kubernetes 调度器默认使用的是最高得分优先（Highest Score First）的算法，即对节点进行评分，并选择得分最高的节点进行调度。评分的过程包括以下几个因素：
+
+- 节点资源的匹配度。
+- Pod 与节点亲和性的匹配度。
+- 节点上已有 Pod 的数量。
+- Pod 的优先级和 QoS 类别。
+
+###### 调度器的可扩展算法
+
+除了默认算法之外，Kubernetes 调度器还支持自定义算法，包括：
+
+- 基于深度学习的算法。
+- 基于遗传算法的算法。
+- 基于模拟退火的算法。
+- 基于贪心算法的算法。
+
+可扩展算法需要通过调度器插件机制进行实现。
+
+###### 常见的调度方式
+
+Kubernetes 提供了以下四种常见的调度方式：
+
+1. **基于 Pod 的亲和性调度（Pod Affinity）**：可以将同一个 Pod 或者同一个副本集的多个 Pod 调度到同一个节点或者一组节点，以提高应用性能和可靠性。
+2. **基于节点的亲和性调度（Node Affinity）**：可以将具有特定标签或者标签组合的 Pod 调度到具有相同标签或者标签组合的节点上，以满足应用的特殊需求。
+3. **污点和容忍（Taints and Tolerations）**：可以将节点标记为不适合运行某些 Pod，然后通过为 Pod 添加容忍标签来使其在这些节点上运行。这种方式可以防止不合适的应用程序在错误的节点上运行，从而提高应用程序的可靠性。
+4. **基于节点选择器的定向调度（Node Selector）**：可以将具有特定标签或者标签组合的 Pod 调度到具有相同标签或者标签组合的节点上，以满足应用的特殊需求。这种方式与基于节点的亲和性调度非常相似，但是更加灵活，可以更精确地控制 Pod 的调度。
+
+这些调度方式可以帮助 Kubernetes 用户更好地管理和控制应用程序的调度，从而提高应用程序的性能、可靠性和可扩展性。
+
+#### 调度器的高级特性
+
+##### 自定义调度器和扩展点
+
+Kubernetes 调度器允许用户通过自定义插件和扩展点来实现自定义调度器。用户可以使用调度器插件机制来实现自定义的调度算法、策略和扩展点，以满足特定的应用需求。
+
+一些常见的调度器插件包括：
+
+- 预选器插件：可以自定义预选器的行为，例如添加新的过滤规则、修改过滤规则的权重等。
+- 优选器插件：可以自定义优选器的行为，例如添加新的评分规则、修改评分规则的权重等。
+- 绑定器插件：可以自定义绑定器的行为，例如在绑定 Pod 之前执行某些操作、修改绑定的结果等。
+
+##### 调度器的调试和故障排除
+
+在 Kubernetes 中，调度器是应用程序的核心组件之一，因此调度器故障可能会导致应用程序无法正常运行。为了及时发现和解决调度器问题，可以采用以下调试和故障排除方法：
+
+- 查看调度器的日志文件，分析日志中的错误和警告信息。
+- 使用 kubectl 命令查看未调度的 Pod 和调度器的状态。
+- 检查节点的状态和资源使用情况，查看是否存在节点故障或资源耗尽的情况。
+- 使用 kubectl 命令手动调度 Pod，检查调度器是否能够正常工作。
+- 使用 kubectl 命令创建和删除节点，检查调度器是否能够正常响应变化。
+
+##### 调度器的性能和优化
+
+为了最大限度地提高 Kubernetes 调度器的性能和可靠性，可以采用以下优化措施：
+
+- 使用节点亲和性调度和定向调度，将 Pod 调度到最合适的节点上，减少不必要的调度操作。
+- 避免在节点上运行过多的 Pod，以避免资源耗尽和冲突。
+- 将 Pod 分配到不同的命名空间中，以避免不同应用程序之间的冲突和干扰。
+- 使用调度器插件机制，实现自定义调度策略和算法，以满足特定的应用需求。
+- 定期检查调度器的日志文件和性能指标，及时发现和解决问题。
+
+#### 亲和性调度
+
+##### 什么是亲和性调度
+
+亲和性调度是 Kubernetes 中的一种调度策略，它可以根据 Pod 和 Node 之间的关系，将 Pod  调度到特定的节点上。亲和性调度主要有三种类型：Node 亲和性调度、Pod 亲和性调度和 Pod 亲和性反调度（也称为 Pod  亲和性的反向策略）。
+
+##### 为什么需要亲和性调度
+
+亲和性调度可以实现多种调度策略，例如将相同应用程序的多个 Pod 调度到相同节点上，或将同一数据库集群的多个 Pod  调度到相同节点上，从而提高了应用程序的性能和可靠性。此外，通过将 Pod  调度到相同节点上，可以减少网络通信和数据传输的延迟，提高应用程序的处理速度。
+
+##### Node 亲和性调度
+
+###### NodeSelector
+
+假设有一个 Kubernetes 集群，其中有多个节点，每个节点都有不同的标签。现在我想将一个具有特定标签的 Pod 调度到一个具有特定标签的节点上。这时，可以使用 NodeSelector 进行调度。以下是一个示例：
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  containers:
+  - name: my-container
+    image: nginx
+  nodeSelector:
+    disktype: ssd # 指定调度到具有 disktype=ssd 标签的节点上
+```
+
+在上面的示例中，我将 Pod 的 disktype 标签设置为 ssd，而且节点也有 disktype 标签，因此 Pod 可以通过 NodeSelector 调度到拥有相同标签的节点上。
+
+###### Inter-Pod Affinity
+
+假设有一个 Kubernetes 集群，其中有多个节点，每个节点都有不同的标签。现在我想**将多个具有相同标签的 Pod 调度到同一节点上**，以提高应用程序的性能。这时，可以使用 Inter-Pod Affinity 进行调度。以下是一个示例：
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-container
+        image: nginx
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - my-app
+            topologyKey: "kubernetes.io/hostname"
+```
+
+在上面的示例中，我将 Pod 的 app 标签设置为 my-app，然后使用 PodAffinity  将它们调度到同一节点上。在这个示例中，我使用了 requiredDuringSchedulingIgnoredDuringExecution  选项，这意味着只有当满足 Pod 的标签选择器时，才会将 Pod 调度到同一节点上。同时，我还指定了 topologyKey，这样 Pod  会被调度到具有相同标签的节点上。
+
+###### Inter-Pod Anti-Affinity
+
+假设有一个 Kubernetes 集群，其中有多个节点，每个节点都有不同的标签。现在我想**将具有不同标签的多个 Pod 调度到不同节点上**，以提高应用程序的可靠性。这时，可以使用 Inter-Pod Anti-Affinity 进行调度。以下是一个示例：
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-container
+        image: nginx
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: NotIn
+                values:
+                - my-app
+            topologyKey: "kubernetes.io/hostname"
+```
+
+在上面的示例中，我将 Pod 的 app 标签设置为 my-app，然后使用 PodAntiAffinity  将它们调度到不同节点上。在这个示例中，我使用了 requiredDuringSchedulingIgnoredDuringExecution  选项，这意味着只有当满足 Pod 的标签选择器时，才会将 Pod 调度到不同节点上。同时，我还指定了 topologyKey，这样 Pod  会被调度到不同标签的节点上。
+
+###### Node Affinity
+
+Node Affinity 是 Kubernetes 中的一种调度策略，它允许您根据节点的属性或状态，**将 Pod 调度到特定的节点上**。与  NodeSelector 不同，Node Affinity  具有更强的表达能力，可以通过使用节点标签、节点标注、节点资源等属性来实现更复杂的调度策略。
+
+以下是一个示例，演示如何使用 Node Affinity 将 Pod 调度到拥有特定标签的节点上：
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  containers:
+  - name: my-container
+    image: nginx
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: disktype
+            operator: In
+            values:
+            - ssd
+```
+
+在上面的示例中，我将 Pod 的 disktype 标签设置为 ssd，然后使用 Node Affinity  将它们调度到拥有相同标签的节点上。在这个示例中，我使用了  requiredDuringSchedulingIgnoredDuringExecution 选项，这意味着只有当满足节点的标签选择器时，才会将 Pod 调度到特定的节点上。同时，我还使用了 matchExpressions，这样可以更详细地描述节点选择器的匹配规则。
+
+除了 requiredDuringSchedulingIgnoredDuringExecution 外，还有  preferredDuringSchedulingIgnoredDuringExecution 选项，它允许您指定当没有满足  requiredDuringSchedulingIgnoredDuringExecution  的节点时，可以选择哪些节点进行调度。此外，您还可以使用 nodeSelectorTerms 来指定多个节点选择器，以实现更复杂的调度策略。
+
+##### Pod 亲和性调度
+
+Pod 亲和性调度是 Kubernetes 中的一种调度策略，它可以根据 Pod 之间的关系，将 Pod 调度到特定的节点上。
+
+###### Pod Affinity
+
+Pod Affinity 是一种 Pod 亲和性调度策略，它可以根据 Pod 之间的关系，将具有相同标签的多个 Pod 调度到同一节点上，并且可以根据节点的标签来选择调度的节点。以下是一个 Pod Affinity 的示例：
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-container
+        image: nginx
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - my-app
+            topologyKey: "kubernetes.io/hostname"
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: NotIn
+                values:
+                - my-app
+            topologyKey: "kubernetes.io/hostname"
+```
+
+在上面的示例中，我将 Pod 的 app 标签设置为 my-app，并使用 Pod Affinity 将具有相同标签的多个 Pod  调度到同一节点上，并且使用 Pod Anti-Affinity 将具有不同标签的多个 Pod 调度到不同的节点上。同时，我还使用了  topologyKey 来指定节点的标签，以更精确地选择调度的节点。
+
+###### Inter-Pod Anti-Affinity
+
+Inter-Pod Anti-Affinity 是一种 Pod 亲和性调度策略，它可以根据 Pod 之间的关系，**将具有不同标签的多个 Pod 调度到不同的节点上**。以下是一个 Inter-Pod Anti-Affinity 的示例：
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-container
+        image: nginx
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: NotIn
+                values:
+                - my-app
+            topologyKey: "kubernetes.io/hostname"
+```
+
+在上面的示例中，我将 Pod 的 app 标签设置为 my-app，并使用 Inter-Pod Anti-Affinity 将具有不同标签的多个 Pod 调度到不同的节点上。
+
+###### Inter-Pod Affinity
+
+Inter-Pod Affinity 是一种 Pod 亲和性调度策略，它可以根据 Pod 之间的关系，**将具有相同标签的多个 Pod 调度到同一节点上**。以下是一个 Inter-Pod Affinity 的示例：
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-container
+        image: nginx
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - my-app
+            topologyKey: "kubernetes.io/hostname"
+```
+
+在上面的示例中，我将 Pod 的 app 标签设置为 my-app，并使用 Inter-Pod Affinity 将具有相同标签的多个 Pod 调度到同一个节点上。
+
+##### 亲和性调度的优化和注意事项
+###### 避免节点资源耗尽
+
+在使用节点亲和性调度时，确保节点资源能够满足 Pod 的需求。例如，如果设置了节点亲和性调度，但节点资源已经耗尽，那么新的 Pod 将无法调度。因此，在设置节点亲和性调度时，需要仔细考虑节点资源。
+
+###### 避免节点单点故障
+
+在使用节点亲和性调度时，确保不要将相邻的 Pod 调度到同一个节点上，以避免节点单点故障导致 Pod 不可用。例如，如果将多个具有相同标签的 Pod 调度到同一个节点上，那么如果该节点发生故障，所有 Pod 将不可用。
+
+###### 注意亲和性调度的优先级
+
+在使用亲和性调度时，需要注意调度策略的优先级。例如，如果使用 Pod 亲和性调度和节点亲和性调度，那么节点亲和性调度将具有更高的优先级。因此，在设置亲和性调度时，需要了解调度策略的优先级，并根据需要进行调整。
+
+###### 关注亲和性调度的性能和可靠性
+
+在使用亲和性调度时，需要关注其性能和可靠性。例如，如果使用节点亲和性调度来提高网络性能，但实际上在某些情况下会导致网络拥塞或延迟，那么可能需要重新考虑亲和性调度的策略，以提高应用程序的性能和可靠性。
+
+#### 定向调度
+
+##### 定向调度的概念和原理
+
+定向调度是 Kubernetes 集群中的一种调度方式，它可以将某些特定的 Pod 调度到指定的节点上。在某些场景下，我们需要将一些 Pod 调度到特定的节点上，例如需要与某些节点上的硬件设备进行通信，或者需要在某些节点上运行特定的应用程序。
+
+在 Kubernetes 中，定向调度可以通过 nodeName、nodeSelector、taints 和 tolerations 等方式实现。
+
+##### 使用 nodeName 实现定向调度
+
+使用 nodeName 实现定向调度是最简单的一种方式，它允许我们直接指定某个节点的名称，将 Pod 调度到该节点上。使用 nodeName 实现定向调度需要在 Pod 的 YAML 配置文件中添加以下字段：
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  nodeName: node1 # 指定调度到node1节点上
+  containers:
+  - name: my-container
+    image: nginx
+```
+
+在上面的例子中，我们将 Pod 调度到名为 node1 的节点上。
+
+##### 使用 nodeSelector 实现定向调度
+
+使用 nodeSelector 实现定向调度需要先在节点上添加标签，然后在 Pod 的 YAML  配置文件中指定相应的标签选择器。只有满足标签选择器条件的节点才会被考虑进行 Pod 调度。使用 nodeSelector 实现定向调度需要在  Pod 的 YAML 配置文件中添加以下字段：
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  nodeSelector:
+    disk: ssd
+  containers:
+  - name: my-container
+    image: nginx
+```
+
+在上面的例子中，我们使用了一个名为 disk 的标签选择器，只有具有标签 disk=ssd 的节点才会被考虑进行 Pod 调度。
+
+```bash
+kubectl label nodes node1 disk=ssd
+```
+
+#### 污点和容忍
+
+##### 污点
+
+###### 污点的概念和作用
+
+在 Kubernetes 中，**污点是一种机制，用于标记节点上不允许运行某些 Pod 的情况**。污点可以被视为一种负面标记，它表示节点上存在一些问题，如运行的服务已满负荷或需要进行维护等。
+
+污点可以帮助 Kubernetes 集群管理者更好地掌握节点的状态，有助于提高集群的安全性和稳定性。当节点出现问题时，Kubernetes 可以自动将 Pod 调度到其他可用的节点上，以确保集群的正常运行。
+
+###### 污点的标签和选择器
+
+在 Kubernetes 中，污点是通过节点的标签和选择器来管理的。节点的标签可以用来描述节点的状态和属性，选择器可以用来选择满足特定要求的节点。
+
+要为节点设置污点，您需要在节点上添加一个 taints 字段。该字段包含一个或多个污点，每个污点由三个部分组成：键、值和效果。
+
+键和值用于标识污点，效果用于描述污点对 Pod 调度的影响。效果有三种类型：
+
+- NoSchedule：表示节点上不允许运行任何未经容忍的 Pod。
+- PreferNoSchedule：表示节点上不鼓励运行未经容忍的 Pod，但仍可运行。
+- NoExecute：表示节点上的已有 Pod 将被驱逐，并阻止运行未经容忍的新 Pod。
+
+###### 污点的常见场景和示例
+
+污点的常见使用场景和示例包括：
+
+- 防止 Pod 调度到过载或维护中的节点上。
+- 在集群中保障特定类型的 Pod 运行在特定的节点上。
+- 为集群中的敏感或关键任务分配专用的节点。
+
+下面是一个 YAML 示例代码，用于为节点添加污点：
+
+```yaml
+apiVersion: v1
+kind: Node
+metadata:
+  name: node1
+spec:
+  taints:
+  - key: workload
+    value: high
+    effect: NoSchedule
+```
+
+在上面的示例中，我们为名为 node1 的节点添加了一个名为 workload 的污点，它的值为 high，效果为 NoSchedule。这意味着该节点不允许运行未经容忍的 Pod。
+
+###### 污点常用命令
+
+- 为node设置污点(PreferNoSchedule)
+
+```bash
+kubectl taint nodes node1 tag=heima:PreferNoSchedule
+```
+
+- 取消污点PreferNoSchedule，创建NoSchedule污点
+
+```bash
+kubectl taint nodes all-in-one tag:PreferNoSchedule-
+kubectl taint nodes all-in-one tag-heima:NoSchedule
+```
+
+##### 容忍
+
+###### 容忍的概念和作用
+
+在 Kubernetes 中，**容忍是一种机制，用于允许某些 Pod 运行在不满足要求的节点上**。这些节点可能有污点，或者不满足其他特定的条件，但如果 Pod 配置了相应的容忍规则，它们仍然可以被调度到这些节点上。
+
+容忍可以帮助 Kubernetes 集群管理者更灵活地管理集群中的 Pod。当集群中的节点出现问题或需要维护时，容忍可以允许一些 Pod 在不满足要求的节点上运行，以确保集群的正常运行。
+
+###### 容忍的标签和选择器
+
+在 Kubernetes 中，容忍是通过 Pod 的标签和选择器来管理的。Pod 的标签可以用来描述 Pod 的状态和属性，选择器可以用来选择满足特定要求的节点。
+
+要为 Pod 设置容忍规则，您需要在 Pod 的规范中添加一个 tolerations 字段。该字段包含一个或多个容忍规则，每个规则由三个部分组成：键、操作符和值。
+
+键和值用于标识节点的标签或污点，操作符用于描述容忍规则的类型。操作符有三种类型：
+
+- Equal：表示容忍规则的值与节点的标签或污点的值相等。
+- Exists：表示容忍规则的键存在于节点的标签或污点的键中。
+- NotEqual：表示容忍规则的值与节点的标签或污点的值不相等。
+
+###### 容忍的常见场景和示例
+
+容忍的常见使用场景和示例包括：
+
+- 允许一些 Pod 运行在节点上，即使它们被标记为污点。
+- 允许一些 Pod 运行在不满足要求的节点上，以保证集群的稳定性。
+- 允许一些 Pod 在节点维护期间运行，以确保集群的正常运行。
+
+下面是一个 YAML 示例代码，用于为 Pod 设置容忍规则：
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.21.1
+    ports:
+    - containerPort: 80
+  tolerations:
+  - key: workload
+    operator: Equal
+    value: high
+    effect: NoSchedule # 添加容忍的规则，这里必须和标记的污点规则相同
+```
+
+在上面的示例中，我们为名为 nginx 的 Pod 添加了一个容忍规则，它的键为 workload，操作符为 Equal，值为 high，效果为 NoSchedule。这意味着该 Pod 可以运行在被标记为 workload=high 的节点上。
+
 ### kubernetes 网络架构
+
+#### Kubernetes 网络模型和设计原则
+
+##### Kubernetes 网络模型的概念和意义
+
+Kubernetes 网络模型是指 Kubernetes 集群中的 Pod 网络互联模型。Kubernetes 网络模型的设计旨在提供一种灵活、可扩展、安全和高效的网络架构，使得应用程序可以在 Kubernetes 集群中更加方便地进行开发、部署和运行。
+
+Kubernetes 网络模型的主要目标包括：
+
+1. 提供可扩展、高效、动态的网络互联机制，使得 Pod 可以在集群内相互通信。
+2. 提供多种网络插件和驱动程序，使得 Kubernetes 可以支持不同的网络架构和技术。
+3. 提供网络安全和隔离机制，保护 Kubernetes 集群中的应用程序和数据不受恶意攻击和安全漏洞的影响。
+4. 提供网络质量保障和服务质量管理机制，使得应用程序可以获得足够的带宽、低延迟和高可靠性的网络服务。
+
+##### Kubernetes 网络设计的原则和考虑因素
+
+在设计 Kubernetes 网络架构时，需要考虑以下因素：
+
+1. 网络拓扑和结构：Kubernetes 网络架构应该基于集群的物理拓扑和逻辑结构进行设计，以确保网络互联的高效性和可扩展性。
+2. 网络插件和驱动程序：Kubernetes 网络架构应该支持多种网络插件和驱动程序，以满足不同的网络架构和技术需求。
+3. 网络安全和隔离：Kubernetes 网络架构应该提供网络安全和隔离机制，以保护应用程序和数据的安全性和隐私性。
+4. 网络质量和服务质量：Kubernetes 网络架构应该提供网络质量保障和服务质量管理机制，以确保应用程序可以获得足够的带宽、低延迟和高可靠性的网络服务。
+5. 可扩展性和灵活性：Kubernetes 网络架构应该具有良好的可扩展性和灵活性，以适应不同规模和复杂度的应用场景。
+
+##### Kubernetes 网络模型的体系结构和组件
+
+Kubernetes 网络模型的体系结构和组件包括：
+
+1. Pod 网络：Kubernetes 中的 Pod 网络是指 Pod 之间的网络互联机制。Pod 网络可以使用多种网络插件和驱动程序，例如 Flannel、Calico、Cilium、Weave Net 等。
+2. Service 网络：Kubernetes 中的 Service 网络是指 Service 对象的网络互联机制。Service 网络可以使用 kube-proxy 等网络组件来实现负载均衡和流量转发功能。
+3. Ingress 网络：Kubernetes 中的 Ingress 网络是指 Ingress 对象的网络互联机制。Ingress 网络可以使用 Ingress Controller 等网络组件来实现 HTTP(S) 流量的路由和负载均衡功能。
+4. Network Policy：Kubernetes 中的 Network Policy  是一种网络安全和隔离机制，可以通过标签选择器来限制来自不同来源和目标的网络流量。Network Policy 可以实现 Pod 级别和  Namespace 级别的网络隔离和安全策略。
+
+##### Kubernetes 网络模型的可扩展性和插件化
+
+Kubernetes  网络模型的可扩展性和插件化是其设计的重要特点。通过使用不同的网络插件和驱动程序，可以支持多种不同的网络架构和技术，例如 Overlay  网络、VXLAN、BGP、IPsec 等。这些网络插件和驱动程序可以根据不同的应用场景和需求进行选择和配置，以满足不同的网络连接和传输需求。
+
+##### Kubernetes 网络模型的安全性和隔离性
+
+Kubernetes 网络模型的安全性和隔离性是其设计的另一个重要特点。通过使用 Network Policy 等网络安全机制，可以实现对 Pod 和 Service 的网络访问进行限制和控制，以保护应用程序和数据的安全性和隐私性。此外，还可以使用 TLS 和 RBAC  等安全机制，进一步加强 Kubernetes 集群的安全性和隔离性。
+
+##### Kubernetes 网络模型的质量保障和服务质量管理
+
+Kubernetes 网络模型的质量保障和服务质量管理是其设计的另一个重要特点。通过使用 QoS 和 Pod Anti-Affinity  等机制，可以保证应用程序可以获得足够的带宽、低延迟和高可靠性的网络服务。此外，还可以使用 L7 负载均衡器和 DNS  解析器等网络组件，进一步提高 Kubernetes 集群的网络性能和可用性。
+
+#### Kubernetes 网络组件和功能介绍
+
+##### kube-proxy
+
+kube-proxy 是 Kubernetes 中一个重要的网络组件，它负责实现 Kubernetes Service  的网络代理和负载均衡功能。kube-proxy 可以将 Service 对象转换为 iptables 规则，使得 Service 中定义的  Pod 可以通过虚拟 IP 地址进行访问。
+
+kube-proxy 的工作原理如下：
+
+1. 监听 Kubernetes API Server 上的 Service 和 Endpoints 对象变化。
+2. 根据 Service 和 Endpoints 的变化，生成或更新 iptables 规则。
+3. 根据 iptables 规则，将流量转发到 Service 中定义的后端 Pod。
+
+kube-proxy 支持三种代理模式：Userspace、Iptables 和 IPVS。其中，Iptables 和 IPVS 是 Kubernetes 官方推荐的代理模式。kube-proxy 的默认代理模式是 Iptables。
+
+##### kube-dns/coredns
+
+kube-dns/coredns 是 Kubernetes 中的一个 DNS 解析组件，它使得在 Kubernetes 集群中的 Pod 和服务可以通过 DNS 名称进行解析和访问。
+
+kube-dns/coredns 的工作原理如下：
+
+1. 监听 Kubernetes API Server 上的 Service 和 Endpoints 对象变化。
+2. 将 Service 和 Endpoints 转换为 DNS 记录，存储在 etcd 中。
+3. 在 Kubernetes 集群中，Pod 和服务可以通过 DNS 名称进行解析和访问。
+
+kube-dns/coredns 可以为 Kubernetes 集群中的 Pod 和服务提供稳定的 DNS 解析服务，使得应用程序可以更方便地进行服务发现和访问。
+
+##### Ingress Controller
+
+Ingress Controller 是 Kubernetes 中的一个网络组件，它可以实现 HTTP(S)  流量的路由和负载均衡功能。Ingress Controller 可以通过 Ingress  对象对流量进行路由和负载均衡，支持多种路由策略和负载均衡算法。
+
+Ingress Controller 的工作原理如下：
+
+1. 监听 Kubernetes API Server 上的 Ingress 对象变化。
+2. 根据 Ingress 对象中定义的规则，生成或更新负载均衡器的配置。
+3. 通过负载均衡器，将流量转发到 Ingress 对象中定义的后端服务。
+
+Kubernetes 支持多种 Ingress Controller 插件和驱动程序，例如 Nginx、Traefik、HAProxy 等。可以根据不同的需求和场景进行选择和配置。
+
+##### Network Policy
+
+Network Policy 是 Kubernetes 中的一个网络安全和隔离机制，可以通过标签选择器来限制来自不同来源和目标的网络流量。Network Policy 可以实现 Pod 级别和 Namespace 级别的网络隔离和安全策略。
+
+Network Policy 的工作原理如下：
+
+1. 定义 Network Policy 对象，指定源和目标 Pod 之间的网络流量策略。
+2. 将 Network Policy 对象应用到指定的 Pod 或 Namespace 上。
+3. 根据 Network Policy 中定义的规则，过滤和限制流入和流出的网络流量。
+
+通过使用 Network Policy，可以实现 Kubernetes 集群中的网络安全和隔离，保护应用程序和数据的安全性和隐私性。
+
+#### Kubernetes 网络插件介绍
+
+##### Flannel
+
+Flannel 是 Kubernetes 中最常用的网络插件之一，它可以实现 Pod 的跨主机网络通信。Flannel  的工作原理是在每个节点上运行一个代理程序，该代理程序会为每个 Pod 分配一个唯一的 IP 地址，并使用 VXLAN 或者 UDP Tunnel 等技术将 Pod 的网络流量封装在不同的隧道中。
+
+Flannel 的优点是简单易用，适合对网络要求不高的场景。但是，由于 Flannel 使用的是网络隧道技术，可能会对网络性能产生一定的影响。
+
+##### Calico
+
+Calico 是一个开源的网络和安全解决方案，它可以为 Kubernetes 提供网络和安全策略。Calico 的工作原理是通过 BGP 协议实现网络路由和负载均衡，通过网络策略实现安全隔离和流量控制。
+
+Calico 的优点是高性能、高可靠和可扩展性强，适合对网络和安全要求较高的场景。但是，Calico 的配置和管理比较复杂，需要一定的技术和人力资源支持。
+
+##### Weave Net
+
+Weave Net 是一个开源的网络插件，它可以为 Kubernetes 提供网络通信和安全隔离。Weave Net 的工作原理是使用虚拟网络技术将 Pod 的网络流量封装在不同的隧道中，从而实现跨主机的网络通信和安全隔离。
+
+Weave Net 的优点是易于使用、性能稳定和可扩展性强，适合对网络和安全要求较高的场景。但是，Weave Net 的网络隧道可能会对网络性能产生一定的影响。
+
+##### Cilium
+
+Cilium 是一个开源的网络和安全解决方案，它可以为 Kubernetes 提供网络通信和安全策略。Cilium 的工作原理是通过 Linux 内核的 eBPF 技术实现网络路由和负载均衡，通过网络策略实现安全隔离和流量控制。
+
+Cilium 的优点是高性能、高可靠和可扩展性强，同时具有低延迟和低资源占用的特点，适合对网络和安全要求较高的场景。但是，Cilium 的配置和管理比较复杂，需要一定的技术和人力资源支持。
+
+#### Kubernetes 网络安全性和实践建议
+##### 网络隔离和安全组
+
+网络隔离和安全组是 Kubernetes 中保障网络安全的重要手段。可以通过定义 Network Policy 和安全组等方式限制 Pod 和服务之间的网络通信，保护应用程序和数据的安全性和隐私性。
+
+在实践中，建议使用 Network Policy 和安全组等技术实现 Kubernetes 集群中的网络隔离和安全策略，限制网络流量和访问权限，防止网络攻击和数据泄露。
+
+##### 使用 TLS 加密通信
+
+使用 TLS 加密通信是保障 Kubernetes 集群网络安全的重要措施。通过在 Kubernetes 集群中启用 TLS 加密，可以保护 Pod 和服务之间的网络通信，防止敏感信息被窃取或篡改。
+
+在实践中，建议为 Kubernetes 集群中的所有网络通信启用 TLS 加密，使用证书和密钥等方式保护 TLS 的安全性和可靠性。
+
+##### 使用 RBAC 和网络策略控制访问权限
+
+使用 RBAC 和网络策略是实现 Kubernetes 集群网络安全的重要手段。可以通过定义 RBAC 角色和网络策略等方式限制用户和应用程序的访问权限，保护 Kubernetes 集群中的资源和数据安全。
+
+在实践中，建议使用 RBAC 和网络策略等技术实现 Kubernetes 集群中的访问控制和权限管理，限制用户和应用程序的访问权限，防止未经授权的访问和操作。
+
+##### 网络故障排除和调试技巧
+
+网络故障排除和调试技巧是维护 Kubernetes 集群网络稳定和可靠的重要方法。在网络故障发生时，需要使用一些常用的故障排除和调试工具，例如 ping、traceroute、tcpdump、nslookup 等，对网络故障进行定位和分析。
+
+在实践中，建议使用网络故障排除和调试工具对 Kubernetes 集群中的网络故障进行定位和分析，找出故障原因并进行修复和优化。同时，也需要定期进行网络性能和负载测试，评估 Kubernetes 集群网络的可靠性和性能，保障应用程序和数据的正常运行。
 
 ###  kubernetes安全架构
 
+#### Kubernetes 安全模型和设计原则
+##### 最小权限原则
+
+最小权限原则是 Kubernetes 安全设计中的基本原则之一，它要求为每个用户和应用程序分配最小的访问权限，避免不必要的权限和访问。
+
+在 Kubernetes 中，可以通过 RBAC 和网络策略等方式实现最小权限原则。通过定义 RBAC 角色和网络策略等方式限制用户和应用程序的访问权限，保护 Kubernetes 集群中的资源和数据安全。
+
+##### 基于角色的访问控制
+
+基于角色的访问控制是 Kubernetes 安全设计中的重要手段之一，它可以为每个用户和应用程序分配不同的访问权限和角色，保护 Kubernetes 集群中的资源和数据安全。
+
+在 Kubernetes 中，可以通过定义 RBAC 角色和 ClusterRole 等方式实现基于角色的访问控制。通过为每个用户和应用程序分配不同的访问权限和角色，限制用户和应用程序的访问权限，保护 Kubernetes 集群中的资源和数据安全。
+
+##### 安全审计和日志记录
+
+安全审计和日志记录是 Kubernetes 安全设计中的重要手段之一，它可以记录和监控 Kubernetes 集群中的所有访问和操作，实现安全审计和日志分析。
+
+在 Kubernetes 中，可以通过定义 Pod  和容器的日志记录、使用安全审计工具和实时监控等方式实现安全审计和日志记录。通过记录和监控 Kubernetes  集群中的所有访问和操作，及时发现和防止未经授权的访问和操作，保护 Kubernetes 集群中的资源和数据安全。
+
+##### 安全加固和漏洞管理
+
+安全加固和漏洞管理是 Kubernetes 安全设计中的重要手段之一，它可以及时发现和修复 Kubernetes 集群中的安全漏洞和风险，保护 Kubernetes 集群中的资源和数据安全。
+
+在 Kubernetes 中，可以通过定期更新和升级 Kubernetes  的组件和插件、使用安全扫描工具和漏洞管理工具等方式实现安全加固和漏洞管理。通过定期检查和修复 Kubernetes 集群中的安全漏洞和风险，保护 Kubernetes 集群中的资源和数据安全。
+
+####  Kubernetes 安全认证
+
+##### 访问控制
+
+###### 客户端
+
+在 Kubernetes 集群中，客户端通常由两类： 
+
+- User Account：一般是独立于 Kubernetes 之外的其他服务管理的用户账号。 
+
+- Service Account：Kubernetes 管理的账号，用于为Pod的服务进程在访问 Kubernetes 时提供身份标识
+
+###### 认证/授权/准入控制
+
+API Service 是访问和管理资源的唯一入口,任何一个请求都需要访问 API Service,经历如下流程
+
+- Authentication(认证)：身份鉴别,只有正确的账号才能访问
+- Authorization(授权)：判断账号是否有权限执行相应的动作
+- Admission Control（注入控制)：用于补充授权机制以实现更加精细的访问控制功能
+
+![acu](./assets/02-kubernetes篇（新）/1725357-20220706010619675-2085285910.jpg)
+
+##### 认证管理
+
+###### K8S 客户端认证方式
+
+K8S 需要对账户进行认证，在 K8S 中提供了三种认证方式
+
+- HTTP Base 认证
+  - 通过用户名 + 密码进行认证
+  - 该方式通过将用户名与密码通过 base64 进行编码之后放入 HTTP 请求的 Header 的 Authorization 域里面发生给服务端,服务端接受到信息,提取用户名与密码之后在进行解码,之后在进行用户认证
+  - 由于使用 base64 进行编码可以通过反编码得到用户名密码因此该方式不安全
+- HTTP Token
+  - 通过一个 Token 来标识一个合法的用户
+  - 在该方式中每个用户有一个唯一的 Token 用来标识用户,当客户端发起请求的时候在 HTTP 的 Header 中放入 Token,当服务端收到客户端请求之后提取客户端的 Token 信息,然后与服务器中保存的 Token 进行对比,进而验证用户信息
+- HTTPS 证书认证
+  - 基于 CA 根证书签名的双向证书认证方式
+  - 这种认证方式是安全性最高的一种方式，但是同时也是操作起来最麻烦的一种方式。
+
+![https](./assets/02-kubernetes篇（新）/1725357-20220706010619956-1920109497.jpg)
+
+###### HTTPS 认证
+
+- 证书申请和下发,HTTPS 通信双方想 CA 机构进行证书申请,CA机构下发根证书，服务端证书以及私钥给申请者
+- 客户端和服务端进行双向认证
+  - 客户端向服务端发起请求,服务端向客户端发送自己的证书,客户端通过自己的私钥对服务端的证书进行解密获取服务端的公钥,客户端利用服务端的公钥认证证书信息,如果信息一致则信任服务端
+  - 客户端发送自己的证书给服务端,服务端接受到客户端的证书之后使用私钥解密获取客户端的公钥,之后使用客户的公钥进行认证证书信息,如果一致则认可客户端
+- 服务端和客户端进行通信
+  - 服务端和客户端协商解密方案,并且产生一个随机的秘钥进行加密
+  - 客户端将秘钥发给服务端,之后双方使用该加密秘钥进行数据通信
+
+> 注意: Kubernetes允许同时配置多种认证方式，只要其中任意一个方式认证通过即可
+
+###### **HTTP Token 认证**
+
+Token 认证是 Kubernetes 中另一种常用的客户端身份认证方式，它使用基于令牌的身份验证验证客户端的身份。Token 需要存储在 Kubernetes 集群中。
+
+这种认证方式是用一个很长的难以被模仿的字符串--Token 来表明客户端身份的一种方式。每个 Token 对应一个用户名，当客户端发起 API 调用请求的时候，需要在 HTTP 的 Header 中放入 Token，API Server 接受到 Token 后会和服务器中保存的 Token 进行比对，然后进行用户身份认证的过程。
+
+- ``--token-auth-file=/etc/kubernetes/pki/token.csv`` 指定了静态token文件，这个文件的格式如下：
+
+```bash
+token,user,uid,"group1,group2,group3"
+```
+
+- 生成token方式如下：
+
+```bash
+export BOOTSTRAP_TOKEN=$(head -c 16 /dev/urandom | od -An -t x | tr -d ' ')
+cat > token.csv <<EOF
+${BOOTSTRAP_TOKEN},kubelet-bootstrap,10001,"system:kubelet-bootstrap"
+EOF
+```
+
+- 请求Api时只要在Authorization头中加入Bearer Token即可
+
+```bash
+[root@localhost pki]# curl -k --header "Authorization: Bearer 7861c93d890ae64287b0717111f2a869" https://localhost:6443/api
+{
+  "kind": "APIVersions",
+  "versions": [
+    "v1"
+  ],
+  "serverAddressByClientCIDRs": [
+    {
+      "clientCIDR": "0.0.0.0/0",
+      "serverAddress": "192.168.116.128:6443"
+    }
+  ]
+}
+```
+
+##### 授权管理（HTTPS认证）
+
+###### 概述
+
+- 授权发生在认证成功之后，通过认证就可以知道请求用户是谁，然后kubernetes会根据事先定义的授权策略来决定用户是否有权限访问，这个过程就称为授权。
+- 每个发送到API Server的请求都带上了用户和资源的信息：比如发送请求的用户、请求的路径、请求的动作等，授权就是根据这些信息和授权策略进行比较，如果符合策略，则认为授权通过，否则会返回错误。
+
+###### 授权策略
+
+- AlwaysDeny：表示拒绝所有请求，一般用于测试。
+- AlwaysAllow：允许接收所有的请求，相当于集群不需要授权流程（kubernetes默认的策略）。
+- ABAC：基于属性的访问控制，表示使用用户配置的授权规则对用户请求进行匹配和控制。
+- Webhook：通过调用外部REST服务对用户进行授权。
+- Node：是一种专用模式，用于对kubelet发出的请求进行访问控制。
+- RBAC：基于角色的访问控制（kubeadm安装方式下的默认选项）。
+
+###### RBAC
+
+RBAC（Role Based Access Control）：基于角色的访问控制，主要是在描述一件事情：给哪些对象授权了哪些权限。
+
+RBAC涉及到了下面几个概念：
+
+- 对象：User、Groups、ServiceAccount。
+- 角色：代表着一组定义在资源上的可操作的动作（权限）的集合。
+- 绑定：将定义好的角色和用户绑定在一起。
+
+<img src="./assets/02-kubernetes篇（新）/1725357-20220706010620245-552212016.jpg" alt="rbac" style="zoom: 67%;" />
+
+RBAC还引入了4个顶级资源对象
+
+- Role、ClusterRole：角色，用于指定一组权限。
+- RoleBinding、ClusterRoleBinding：角色绑定，用于将角色（权限的集合）赋予给对象。
+
+###### Role/ClusterRole
+
+一个角色就是一组权限的集合，这里的权限都是许可形式的（白名单）。
+
+role 资源清单文件
+
+```yaml
+# Role只能对命名空间的资源进行授权，需要指定namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: authorization-role
+  namespace: dev
+rules:
+  - apiGroups: [""] # 支持的API组列表，""空字符串，表示核心API群
+    resources: ["pods"] # 支持的资源对象列表
+    verbs: ["get","watch","list"]
+```
+
+ClusterRole的资源清单文件：
+
+```yaml
+# ClusterRole可以对集群范围内的资源、跨namespace的范围资源、非资源类型进行授权
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: authorization-clusterrole
+rules:
+  - apiGroups: [""] # 支持的API组列表，""空字符串，表示核心API群
+    resources: ["pods"] # 支持的资源对象列表
+    verbs: ["get","watch","list"]
+```
+
+> rules中的参数说明：
+>
+> apiGroups：支持的API组列表。
+>
+> - "","apps","autoscaling","batch"。
+>
+> resources：支持的资源对象列表。
+>
+> - "services","endpoints","pods","secrets","configmaps","crontabs","deployments","jobs","nodes","rolebindings","clusterroles","daemonsets","replicasets","statefulsets","horizontalpodautoscalers","replicationcontrollers","cronjobs"。
+>
+> verbs：对资源对象的操作方法列表。
+>
+> - "get", "list", "watch", "create", "update", "patch", "delete", "exec"。
+
+###### RoleBinding、ClusterRoleBinding
+
+###### RoleBinding、ClusterRoleBinding
+
+角色绑定用来把一个角色绑定到一个目标对象上，绑定目标可以是User、Group或者ServiceAccount。
+
+RoleBinding的资源清单文件：
+
+```yaml
+# RoleBinding可以将同一namespace中的subject对象绑定到某个Role下，则此Subject具有该Role定义的权限
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: authorization-role-binding
+  namespace: dev
+subjects:
+  - kind: User
+    name: SR
+    apiGroup: rbac.authorization.k8s.io  
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: authorization-role
+```
+
+ClusterRoleBinding的资源清单文件：
+
+```yaml
+# ClusterRoleBinding在整个集群级别和所有namespaces将特定的subject与ClusterRole绑定，授予权限
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: authorization-clusterrole-binding
+subjects:
+  - kind: User
+    name: SR
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: authorization-clusterrole
+```
+
+###### RoleBinding引用ClusterRole进行授权
+
+- RoleBinding可以引用ClusterRole，对属于同一命名空间内ClusterRole定义的资源主体进行授权。
+- 一种很常用的做法是，集群管理员为集群范围预定义好一组角色（ClusterRole），然后在多个命名空间中重复使用这些ClusterRole。这样可以大幅度提高授权管理工作效率，也使得各个命名空间下的基础性授权规则和使用体验保持一致。
+
+```yaml
+# 虽然authorization-clusterrole是一个集群角色，但是因为使用了RoleBinding
+# 所以SR只能读取dev命名空间中的资源
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: authorization-clusterrole-binding
+subjects:
+  - kind: User
+    name: SR
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: authorization-clusterrole
+```
+
+###### RBAC实战：创建账号
+
+- 创建一个只能管理dev命名空间下Pods资源的账号。
+
+```bash
+# 创建证书
+cd /etc/kubernetes/pki/ && (umask 077;openssl genrsa -out devman.key 2048)
+
+# 签名申请	申请的用户是devman，组是devgroup
+openssl req -new -key devman.key -out devman.csr -subj "/CN=devman/O=devgroup"
+
+# 签署证书
+openssl x509 -req -in devman.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out devman.crt -days 3650
+```
+
+```bash
+# 设置集群/用户/上下文
+kubectl config set-cluster kubernetes --embed-certs=true --certificate-authority=/etc/kubernetes/pki/ca.crt --server=https://192.168.116.128:6443
+
+kubectl config set-credentials devman --embed-certs=true --client-certificate=/etc/kubernetes/pki/devman.crt --client-key=/etc/kubernetes/pki/devman.key
+
+kubectl config set-context devman@kubernetes --cluster=kubernetes --user=devman
+
+
+# 切换devman 账号
+kubectl config use-context devman@kubernetes
+
+# 查看
+kubectl get pods -n dev
+```
+
+-  切换到 admin 账户 
+
+```bash
+kubectl config use-context kubernetes-admin@kubernetes
+```
+
+可以通过`kubectl config view`查看用户/集群配置信息。
+
+###### 创建Role和RoleBinding，为devman授权
+
+```bash
+# 创建配置文件
+cat > dev-role.yaml << EOF
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: dev-role
+  namespace: dev
+rules:
+  - apiGroups: [""] # 支持的API组列表，""空字符串，表示核心API群
+    resources: ["pods"] # 支持的资源对象列表
+    verbs: ["get","watch","list"]
+
+---
+
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: authorization-role-binding 
+  namespace: dev
+subjects:
+  # 针对用户类型
+  - kind: User
+    name: devman
+    apiGroup: rbac.authorization.k8s.io 
+roleRef:
+  # 针对 role
+  kind: Role 
+  name: dev-role
+  apiGroup: rbac.authorization.k8s.io
+EOF
+
+# 加载配置文件
+[root@master k8s]# kubectl create -f dev-role.yaml
+
+# 切换用户再次验证
+kubectl config use-context devman@kubernetes
+
+[root@master k8s]# kubectl get -n dev pod -o wide
+```
+
+###### 准入控制
+
+- 通过了前面的认证和授权之后，还需要经过准入控制通过之后，API Server才会处理这个请求。
+- 准入控制是一个可配置的控制器列表，可以通过在API Server上通过命令行设置选择执行哪些注入控制器。
+
+```ini
+--enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds
+```
+
+###### 当前可配置的Admission Control（准入控制）
+
+- AlwaysAdmit：允许所有请求。
+- AlwaysDeny：禁止所有请求，一般用于测试。
+- AlwaysPullImages：在启动容器之前总去下载镜像。
+- DenyExecOnPrivileged：它会拦截所有想在Privileged Container上执行命令的请求。
+- ImagePolicyWebhook：这个插件将允许后端的一个Webhook程序来完成admission controller的功能。
+- Service Account：实现ServiceAccount实现了自动化。
+- SecurityContextDeny：这个插件将使用SecurityContext的Pod中的定义全部失效。
+- ResourceQuota：用于资源配额管理目的，观察所有请求，确保在namespace上的配额不会超标。
+- LimitRanger：用于资源限制管理，作用于namespace上，确保对Pod进行资源限制。
+- InitialResources：为未设置资源请求与限制的Pod，根据其镜像的历史资源的使用情况进行设置。
+- NamespaceLifecycle：如果尝试在一个不存在的namespace中创建资源对象，则该创建请求将被拒 绝。当删除一个namespace时，系统将会删除该namespace中所有对象。
+- DefaultStorageClass：为了实现共享存储的动态供应，为未指定StorageClass或PV的PVC尝试匹配默认StorageClass，尽可能减少用户在申请PVC时所需了解的后端存储细节。
+- DefaultTolerationSeconds：这个插件为那些没有设置forgiveness tolerations并具有notready:NoExecute和unreachable:NoExecute两种taints的Pod设置默认的“容忍”时间，为5min。
+- PodSecurityPolicy：这个插件用于在创建或修改Pod时决定是否根据Pod的security context和可用的 PodSecurityPolicy对Pod的安全策略进行控制
+
+#### Kubernetes 安全实践建议
+
+##### 硬化 Kubernetes 集群
+
+在安全 Kubernetes 集群时，需要对集群中的主机和网络进行硬化，以保护 Kubernetes 集群免受未经授权的访问和攻击。具体的措施包括：
+
+- 禁用不必要的服务和端口。
+- 配置防火墙，限制网络流量。
+- 配置操作系统和主机的安全设置。
+- 配置 Kubernetes API Server、etcd、kubelet 等组件的安全设置。
+
+##### 安全配置 Kubernetes 组件
+
+在安全 Kubernetes 集群时，需要对 Kubernetes 组件进行安全配置，以防范可能的安全漏洞和攻击。具体的措施包括：
+
+- 配置 Kubernetes API Server、etcd、kubelet 等组件的安全设置。
+- 配置 Kubernetes 组件的访问控制和认证设置。
+- 对 Kubernetes 组件进行审计和日志记录。
+
+##### 安全配置容器镜像和容器运行时
+
+在安全 Kubernetes 集群时，需要对容器镜像和容器运行时进行安全配置，以防范可能的安全漏洞和攻击。具体的措施包括：
+
+- 使用安全的容器镜像，避免使用带有已知漏洞的镜像。
+- 配置容器运行时的安全设置，例如限制容器的资源使用、限制容器的网络访问等。
+- 使用容器运行时提供的安全功能。
+
+##### 使用网络策略控制网络访问
+
+在安全 Kubernetes 集群时，需要使用网络策略控制网络访问，以防范未经授权的访问和攻击。具体的措施包括：
+
+- 针对 Kubernetes 集群中的各个命名空间和服务，使用网络策略控制入站和出站流量。
+- 使用网络策略控制 Pod 之间的通信，限制 Pod 之间的网络访问。
+
+##### 使用 TLS 加密通信
+
+在安全 Kubernetes 集群时，需要使用 TLS 加密通信，以保护 Kubernetes 集群中的数据和通信安全。具体的措施包括：
+
+- 配置 Kubernetes 组件使用 TLS 加密通信。
+- 配置容器镜像库使用 TLS 加密通信。
+- 配置 Pod 使用 TLS 加密通信。
+
+##### 使用 RBAC 和 Pod Security Policies 控制访问权限
+
+在安全 Kubernetes 集群时，需要使用 RBAC 和 Pod Security Policies 控制访问权限，以防范未经授权的访问和攻击。具体的措施包括：
+
+- 使用 RBAC 限制用户和服务账号的访问权限。
+- 使用 Pod Security Policies 控制容器的安全策略，例如限制容器的资源使用、限制容器的网络访问等。
+
+##### 使用安全扫描和漏洞管理工具
+
+在安全 Kubernetes 集群时，需要使用安全扫描和漏洞管理工具，及时发现和修复 Kubernetes 集群中的安全漏洞和风险。具体的措施包括：
+
+- 使用安全扫描工具扫描容器镜像，及时发现和修复镜像中的安全漏洞和风险。
+- 使用漏洞管理工具管理 Kubernetes 集群中的安全漏洞和风险，及时修复和更新 Kubernetes 组件和插件。
+
 ### 监控和日志管理
 
-### 命名空间和资源限制
+#### 监控基础知识
+##### 什么是监控？
+##### 监控的目的是什么？
+##### 监控的类型
+###### 基础设施监控
+###### 应用程序监控
+###### 网络监控
+##### 监控的指标
+###### 性能指标
+###### 容量指标
+###### 可用性指标
 
-### 扩展和自动化
+#### 监控工具和技术
+##### 基础设施监控工具
+###### Nagios
+###### Zabbix
+##### 应用程序监控工具
+###### New Relic
+###### AppDynamics
+##### 日志收集工具
+###### Logstash
+###### Fluentd
+###### Filebeat
+##### 数据库监控工具
+###### Prometheus
+###### InfluxDB
 
-## 核心篇：构建可靠高效的容器化基础架构
+#### 日志管理基础知识
+##### 什么是日志？
+##### 日志的目的是什么？
+##### 日志类型
+###### 访问日志
+###### 错误日志
+###### 调试日志
+##### 日志级别
+###### 错误
+###### 警告
+###### 信息
+###### 调试
 
-### 标签和注解
+#### 日志管理工具和技术
+##### 日志收集工具
+###### Logstash
+###### Fluentd
+###### Filebeat
+##### 日志分析工具
+###### ELK Stack
+###### Splunk
 
-### 自定义资源和扩展
+###### Graylog
+##### 日志存储技术
+###### Elasticsearch
+###### Cassandra
+###### Hadoop
 
-### 状态管理和滚动更新
+#### 监控和日志管理的最佳实践
 
-### 高可用和容错
+##### 架构设计原则
+##### 配置和部署最佳实践
 
-### 网络策略和入口控制
+##### 警报和响应最佳实践
 
-### 存储卷插件和 CSI
+#### 高级监控和日志管理
+##### 监控自动化
+###### 自动化监控配置
+###### 自动化警报和响应
+##### 监控可视化
 
-### 容器运行时和 CRI
+###### 仪表板
 
-### 集群自动化和自动伸缩
+###### 报表
+###### 警报
+##### 日志分析
+###### 日志搜索
+###### 过滤
+###### 分析
+##### 安全监控
 
-### 服务网格和 Istio
+###### 入侵检测
+
+###### 安全事件管理
 
 ## 应用实践篇：构建可靠、安全的容器化应用生态
 
@@ -7495,6 +8724,8 @@ spec:
 ### 部署 MongoDB
 
 ### 部署 fastdfs（部署高可用版本）
+
+## 思考提升篇：为什么使用 Kubernetes 
 
 ## 注意事项篇：在容器化平台中的关键注意事项
 

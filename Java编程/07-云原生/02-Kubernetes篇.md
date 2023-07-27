@@ -9398,7 +9398,7 @@ NodeSelector用于将pod调度到添加了指定标签的node节点上。
 
 ```bash
 kubectl label nodes node1 nodeenv=pro
-ubectl label nodes node2 nodeenv=test
+kubectl label nodes node2 nodeenv=test
 ```
 
 ```yaml
