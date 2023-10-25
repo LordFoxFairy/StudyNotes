@@ -58,7 +58,7 @@ MySQL 有的使用它来村粗一些比较大的文件，博客，图片！
 
 ##### 目前一个基本的互联网项目！
 
-![image-20220209121317474](../../../../同步空间/笔记/学习笔记/assets/redis笔记/202202110251963.png)
+![image-20220209121317474](assets/02-Redis篇/202202110251963.png)
 
 ##### 为什么要用NoSQL！
 
@@ -126,7 +126,7 @@ Nosql
 
 ### 阿里巴巴实践分析理解数据架构演进
 
-![image-20220209124320994](../../../../同步空间/笔记/学习笔记/assets/redis笔记/202202110251964.png)
+![image-20220209124320994](assets/02-Redis篇/202202110251964.png)
 
 技术急不得，越是慢慢学，才能越扎实！ 
 
@@ -136,7 +136,7 @@ Nosql
 
 随着这样的竞争，业务是越来越完善，然后对于开发者的要求也是越来越高！
 
-![image-20220209124411403](../../../../同步空间/笔记/学习笔记/assets/redis笔记/202202110251965.png)
+![image-20220209124411403](assets/02-Redis篇/202202110251965.png)
 
 如果你未来想做一个架构师： 没有什么是加一层解决不了的！
 
@@ -182,9 +182,9 @@ Nosql
 
 解决问题：
 
-![image-20220209124742634](../../../../同步空间/笔记/学习笔记/assets/redis笔记/202202110251966.png)
+![image-20220209124742634](assets/02-Redis篇/202202110251966.png)
 
-![image-20220209124752602](../../../../同步空间/笔记/学习笔记/assets/redis笔记/202202110251967.png)
+![image-20220209124752602](assets/02-Redis篇/202202110251967.png)
 
 这里以上都是NoSQL入门概述，不仅能够提高大家的知识，还可以帮助大家了解大厂的工作内容！
 
@@ -211,14 +211,14 @@ Nosql
 
 **图关系数据库**
 
-![image-20220209131138098](../../../../同步空间/笔记/学习笔记/assets/redis笔记/202202110251968.png)
+![image-20220209131138098](assets/02-Redis篇/202202110251968.png)
 
 - 他不是存图形，放的是关系，比如：朋友圈社交网络，广告推荐！ 
 - **Neo4j**，InfoGrid；
 
 **对比**
 
-![image-20220209131239107](../../../../同步空间/笔记/学习笔记/assets/redis笔记/202202110251969.png)
+![image-20220209131239107](assets/02-Redis篇/202202110251969.png)
 
 ## Redis入门
 
@@ -3598,6 +3598,8 @@ spring.redis.lettuce.pool.min-idle=0
 
 ```
 
+
+
 ## 初识分布式锁
 
 ### 什么是分布式锁
@@ -3860,7 +3862,7 @@ public String payRedisson(Long orderId) throws
     } else {
         System.out.println("获取锁失败");
         return "请稍等，已经有人在支付！！";
-    }
+    }AAW
 }
 ```
 
@@ -4052,8 +4054,6 @@ public long test() {
 3. 最新版本的6.0.x之后，**告别了大家印象中的单线程，用一种全新的多线程来解决问题**
 
 是因为单线程在进行删除大key的时候，可能会阻塞。
-
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16.png)
 
 #### Redis3.x单线程时代但性能依然很快的主要原因
 
@@ -4946,11 +4946,9 @@ public User findUserById(Integer id) {
 
 - JD购物车早期
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_18,color_FFFFFF,t_70,g_se,x_16.png)
+![在这里插入图片描述](assets/02-Redis篇/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_15,color_FFFFFF,t_70,g_se,x_16.png)
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_15,color_FFFFFF,t_70,g_se,x_16.png)
-
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_14,color_FFFFFF,t_70,g_se,x_16.png)
+![在这里插入图片描述](assets/02-Redis篇/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_14,color_FFFFFF,t_70,g_se,x_16.png)
 
 ##### list
 
@@ -4963,13 +4961,13 @@ public User findUserById(Integer id) {
 
 - 微信抽奖小程序
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/9b361a7ab93241339dfd01a0536185fb.png)
+![在这里插入图片描述](assets/02-Redis篇/9b361a7ab93241339dfd01a0536185fb.png)
 
 * 微信朋友圈点赞
 
-<img src="../../../../同步空间/笔记/学习笔记/assets/redis笔记/8e31f74d39eb46ebb986fd5fa6c7b759.png" alt="img" style="zoom:50%;" />
+<img src="assets/02-Redis篇/8e31f74d39eb46ebb986fd5fa6c7b759.png" alt="img" style="zoom:50%;" />
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-166003210918115.png)
+![在这里插入图片描述](assets/02-Redis篇/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-166003210918115.png)
 
 * 微博好友关注社交关系（共同关注的人）
 * QQ内推荐可能认识的人
@@ -5100,7 +5098,7 @@ Bit-map的基本思想就是用一个bit位来标记某个元素对应的Value�
 
 京东每日签到送京东
 
-<img src="../../../../同步空间/笔记/学习笔记/assets/redis笔记/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-166003766413625.png" alt="在这里插入图片描述" style="zoom:50%;" />
+<img src="assets/02-Redis篇/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-166003766413625.png" alt="在这里插入图片描述" style="zoom:50%;" />
 
 ###### 小厂方法–传统mysql方式
 
@@ -5259,7 +5257,7 @@ CRC16算法产生的hash值有16bit，该算法可以产生2^16=65536个值。
 
 因此16k处于正确的范围内，以确保每个主机具有足够的插槽，最多可容纳1000个矩阵，但数量足够少，可以轻松地将插槽配置作为原始位图传播。请注意，在小型群集中，位图将难以压缩，因为当N较小时，位图将设置的slot / N位占设置位的很大百分比。
 
-![img](../../../../同步空间/笔记/学习笔记/assets/redis笔记/676e7b4e41004439aa382db819a15b9f.png)
+![img](assets/02-Redis篇/676e7b4e41004439aa382db819a15b9f.png)
 
 (1) 如果槽位为65536，发送心跳信息的消息头达8k，**发送的心跳包过于庞大**。
 在消息头中最占空间的是myslots[CLUSTER_SLOTS/8]。 当槽位为65536时，这块的大小是: 65536÷8÷1024=8kb
@@ -5386,7 +5384,7 @@ select taxi from position where x0-r < x < x0 + r and y0-r < y < y0+r
 
 核心思想就是将球体转换为平面，区块转换为一点
 
-![img](../../../../同步空间/笔记/学习笔记/assets/redis笔记/13ab5dd949ac4582875bc12471ddfcc5.png)
+![img](assets/02-Redis篇/13ab5dd949ac4582875bc12471ddfcc5.png)
 
 主要分为三步
 
@@ -5880,11 +5878,11 @@ fpp(误判率): **False positive probability**
 
 **查看误判率为0.03的100W个元素的布隆过滤器的创建:**
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-166013780564442.png)
+![在这里插入图片描述](assets/02-Redis篇/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-166013780564442.png)
 
 **查看误判率为0.01的100W个元素的布隆过滤器的创建:**
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-166013785899045.png)
+![在这里插入图片描述](assets/02-Redis篇/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-166013785899045.png)
 
 **对比:**
 误判率越高，所需bit数组就越大，hash函数就越多，程序效率越低。
@@ -5909,7 +5907,7 @@ Guava 提供的布隆过滤器的实现还是很不错的 （想要详细了解�
 
 - 白名单架构说明
 
-<img src="../../../../同步空间/笔记/学习笔记/assets/redis笔记/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-166013841079451.png" alt="在这里插入图片描述" style="zoom:50%;" />
+<img src="assets/02-Redis篇/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-166013841079451.png" alt="在这里插入图片描述" style="zoom:50%;" />
 
 * 代码实战
 
@@ -6012,7 +6010,7 @@ public class RedissonBloomFilterDemo {
 
 * 重要总结
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-166013962655354.png)
+![在这里插入图片描述](assets/02-Redis篇/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-166013962655354.png)
 
 * 黑名单使用
 
@@ -6405,7 +6403,7 @@ QPS上1000后导致缓存击穿
 
 ![img](assets/02-Redis篇/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-16602031636049.png)
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-166020319022112.png)
+![在这里插入图片描述](assets/02-Redis篇/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-166020319022112.png)
 
 ###### 进一步升级加固案例
 
@@ -7052,7 +7050,7 @@ try {
 
 ![img](assets/02-Redis篇/a960591b0b904f119e98d47540cffab2.png)
 
-![img](../../../../同步空间/笔记/学习笔记/assets/redis笔记/ab460cb1641b483aaa66db59d8d4db92.png)
+![img](assets/02-Redis篇/ab460cb1641b483aaa66db59d8d4db92.png)
 
 
 
@@ -7144,7 +7142,7 @@ if(redissonLock.isLocked() && redissonLock.isHeldByCurrentThread())
 
 ##### 官网说明
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16.png)
+![在这里插入图片描述](assets/02-Redis篇/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16.png)
 
 ##### 使用场景
 
@@ -7235,7 +7233,7 @@ Redis也**提供了Redlock算法，用来实现基于多个实例的分布式锁
 
 假设我们有N个Redis主节点，例如 N = 5这些节点是完全独立的，我们不使用复制或任何其他隐式协调系统，为了取到锁客户端执行以下操作：
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-16602744960576.png)
+![在这里插入图片描述](assets/02-Redis篇/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-16602744960576.png)
 
 该方案为了解决数据不一致的问题，**直接舍弃了异步复制只使用 master 节点**，同时由于舍弃了 slave，为了保证可用性，引入了 N 个节点，官方建议是 5。
 
@@ -7633,7 +7631,7 @@ Redisson 里面就实现了这个方案，使用“看门狗”定期检查（�
 
 - 在获取锁成功后，给锁加一个 watchdog，watchdog 会起一个定时任务，在锁没有被释放且快要过期的时候会续期
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-166029155995811.png)
+![在这里插入图片描述](assets/02-Redis篇/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-166029155995811.png)
 
 ##### 源码分析1
 
@@ -7655,7 +7653,7 @@ Redisson 里面就实现了这个方案，使用“看门狗”定期检查（�
 
 ##### 源码分析4(watch dog自动延期机制)
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-166029266707724.png)
+![在这里插入图片描述](assets/02-Redis篇/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-166029266707724.png)
 
 ![img](assets/02-Redis篇/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-166029278444027.png)
 
@@ -7719,7 +7717,7 @@ public class WatchDogDemo
 
 如果同一线程多次调用lock方法，值递增1。
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-166029354259935.png)
+![在这里插入图片描述](assets/02-Redis篇/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-166029354259935.png)
 
 ###### ttl续命的演示
 
@@ -7735,7 +7733,7 @@ public class WatchDogDemo
 
 ![在这里插入图片描述](assets/02-Redis篇/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-166029361911344.png)
 
-![img](../../../../同步空间/笔记/学习笔记/assets/redis笔记/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-166029362813047.png)
+![img](assets/02-Redis篇/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-166029362813047.png)
 
 ###### 正确写法
 
@@ -7958,7 +7956,7 @@ value 既不是直接作为字符串存储，也不是直接存储在 SDS 中，
 
 #### 数据类型以及数据结构的关系
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/b6e5ea7ba4d5404dac8987f81a5c6af0.png)
+![在这里插入图片描述](assets/02-Redis篇/b6e5ea7ba4d5404dac8987f81a5c6af0.png)
 
 ##### String数据类型
 
@@ -8034,7 +8032,7 @@ embstr 与 raw 类型底层的数据结构其实都是 SDS (简单动态字符�
 
 ![img](assets/02-Redis篇/a80683b38cd744dea79f896ecb78a48f.png)
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/82ebcdeaf90346999786bcb9c1ec5a9a.png)
+![在这里插入图片描述](assets/02-Redis篇/82ebcdeaf90346999786bcb9c1ec5a9a.png)
 
 > Redis启动会预先建立10000个分别存储的0\~9999的redisObject变量作为共享对象，这就意味着如果set字符串的键值在0\~10000之间的话，则可以**直接指向共享对象，而不需要再建立新对象，此时键值不占空间！**
 
@@ -8066,7 +8064,7 @@ Hash类型键的字段个数 小于 hash-max-ziplist-entries 并且每个字段�
 
 ###### 流程
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/e961cd6a65b440dbb9f01f469badf701.png)
+![在这里插入图片描述](assets/02-Redis篇/e961cd6a65b440dbb9f01f469badf701.png)
 
 ###### hash的两种编码方式
 
@@ -8091,7 +8089,7 @@ ziplist是一个经过特殊编码的双向链表，它不存储指向上一个�
 - zlentry 列表节点，长度不定，由内容决定。
 - zlend 1字节，0xFF 标记压缩的结束。
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/c407cfbaaa7a41f286c906b5d3f3138e.png)
+![在这里插入图片描述](assets/02-Redis篇/c407cfbaaa7a41f286c906b5d3f3138e.png)
 
 ###### 明明有链表了，为什么出来一个压缩链表?
 
@@ -8144,7 +8142,7 @@ OBJ_ENCODING_HT 这种编码方式内部才是真正的哈希表结构，或称�
 
 * 源代码：dict.h
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/501d49a44a8345ac919718ae98a56a72.png)
+![在这里插入图片描述](assets/02-Redis篇/501d49a44a8345ac919718ae98a56a72.png)
 
 ##### List数据结构
 
@@ -8178,7 +8176,7 @@ OBJ_ENCODING_HT 这种编码方式内部才是真正的哈希表结构，或称�
 
 list用quicklist来存储，quicklist存储了一个双向链表，每个节点都是一个ziplist
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/d81e318f23bb497f9226513d403f07db.png)
+![在这里插入图片描述](assets/02-Redis篇/d81e318f23bb497f9226513d403f07db.png)
 
 在低版本的Redis中，list采用的底层数据结构是ziplist+linkedList；
 
@@ -8197,7 +8195,7 @@ quicklist 实际上是 zipList 和 linkedList 的混合体，它将 linkedList�
 - quicklist.h，head和tail指向双向列表的表头和表尾
 - quicklistNode中的*zl指向一个ziplist，一个ziplist可以存放多个元素
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/e638361ea9cb4c54aaeff5ac2d754239.png)![在这里插入图片描述](assets/02-Redis篇/3ff00d4c091e43928f5cceb54322a41e.png)
+![在这里插入图片描述](assets/02-Redis篇/e638361ea9cb4c54aaeff5ac2d754239.png)![在这里插入图片描述](assets/02-Redis篇/3ff00d4c091e43928f5cceb54322a41e.png)
 
 ##### Set数据结构
 
@@ -8784,7 +8782,7 @@ public class RedisCanalClientExample {
 
 两个并发操作，一个是更新操作，另一个是查询操作，A更新操作删除缓存后，B查询操作没有命中缓存，B线程把老数据读出来后放到缓存中，然后更新操作更新了数据库。于是，在缓存中的数据还是老的数据，导致缓存中的数据时脏的，而且还一直这样脏下去了。
 
-![image-20220816111249075](../../../../同步空间/笔记/学习笔记/assets/redis笔记/image-20220816111249075.png)
+![image-20220816111249075](assets/02-Redis篇/image-20220816111249075.png)
 
 ###### 异常情况
 
@@ -8794,7 +8792,7 @@ public class RedisCanalClientExample {
 
 ###### 解决方案(延时双删策略)
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/1ef5508fb87c4cf8a07b71ae326d0923.png)
+![在这里插入图片描述](assets/02-Redis篇/1ef5508fb87c4cf8a07b71ae326d0923.png)
 
 线程A加上sleep的这段时间，就是为了让线程B能够先从数据库读取数据，再把缺失的数据写入缓存，然后，线程A再进行删除。所以，线程Asleep的时间，就需要大于线程B读取数据再写入缓存的时间。这样一来，其他线程读取数据时，会发现缓存缺失，所以会从数据库中读取最新值。**因为这个方案会在第一次删除缓存值后，延迟一段时间再次进行删除，所以我们也把它叫做"延迟双删"。**
 
@@ -8825,7 +8823,7 @@ public class RedisCanalClientExample {
 
 第二次删除使用异步线程，一异步删除。这样，写的请求就不用沉睡一段时间后，再返回。这么做，加大吞吐量。
 
-![image-20220816112554480](../../../../同步空间/笔记/学习笔记/assets/redis笔记/image-20220816112554480.png)
+![image-20220816112554480](assets/02-Redis篇/image-20220816112554480.png)
 
 ##### 先更新数据库，再删除缓存
 
@@ -8858,7 +8856,7 @@ public class RedisCanalClientExample {
 - 如果能够成功地删除或更新，我们就要把这些值从消息队列中去除，一面重复操作，此时，我们也可以保证数据库和缓存的数据一致了，否则还需要再次进行重试。
 - 如果重试超过的一定次数后还是没有成功，我们就需要项业务层发送报错信息了，通知运维人员。
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-16606217237299.png)
+![在这里插入图片描述](assets/02-Redis篇/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA5Y-k5pyI5pel5pyI6KGj576K,size_20,color_FFFFFF,t_70,g_se,x_16-16606217237299.png)
 
 ### 高性能设计之epoll和IO多路复用深度解析
 
@@ -9435,7 +9433,7 @@ Redis基于Reactor模式开发了网络事件处理器，这个处理器被称�
 
 Reactor 模式，是指通过一个或多个输入同时传递给服务处理器的服务请求的事件驱动处理模式。服务端程序处理传入多路请求，并将它们同步分派给请求对应的处理线程，Reactor 模式也叫 Dispatcher 模式。即 **I/O 多路复用统一监听事件，收到事件后分发(Dispatch 给某进程)，是编写高性能网络服务器的必备技术**。
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/6ba4163b9b094dd0a61c2ab2786841c0.png)
+![在这里插入图片描述](assets/02-Redis篇/6ba4163b9b094dd0a61c2ab2786841c0.png)
 
 Reactor 模式中有 2 个关键组成：
 
@@ -9468,7 +9466,7 @@ Redis基于Reactor模式开发了网络事件处理器，这个处理器被称�
 - Linux官网或者man：https://man7.org/linux/man-pages/man2/select.2.html
 - select是第一个实现 (1983 左右在BSD里面实现)
 
-![img](../../../../同步空间/笔记/学习笔记/assets/redis笔记/afd3e73028d34d1fbc30949ecda8d16b.png)
+![img](assets/02-Redis篇/afd3e73028d34d1fbc30949ecda8d16b.png)
 
 ![img](assets/02-Redis篇/61c9180cd4dd438a92dd8129c5d702c8.png)
 
@@ -9476,16 +9474,16 @@ Redis基于Reactor模式开发了网络事件处理器，这个处理器被称�
 
 ![img](assets/02-Redis篇/4973036782bd4dbc86a4c29498ff018c.png)
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/d28be487f34b4a8f8b6a3cd365720f10.png)
+![在这里插入图片描述](assets/02-Redis篇/d28be487f34b4a8f8b6a3cd365720f10.png)
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/d3600673a3c54f109d53531a77afb6f3.png)
+![在这里插入图片描述](assets/02-Redis篇/d3600673a3c54f109d53531a77afb6f3.png)
 
 **优点**
 select 其实就是把NIO中用户态要遍历的fd数组(我们的每一个socket链接，安装进ArrayList里面的那个)拷贝到了内核态，让内核态来遍历，因为用户态判断socket是否有数据还是要调用内核态的，所有拷贝到内核态后，这样遍历判断的时候就不用一直用户态和内核态频繁切换了。
 
 从代码中可以看出，select系统调用后，返回了一个置位后的&rset，这样用户态只需进行很简单的二进制比较，就能很快知道哪些socket需要read数据，有效提高了效率。
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/821a65d6c3fa4dc7a6ecf45e49150078.png)
+![在这里插入图片描述](assets/02-Redis篇/821a65d6c3fa4dc7a6ecf45e49150078.png)
 
 **问题**
 1、bitmap最大1024位，一个进程最多只能处理1024个客户端
@@ -9507,13 +9505,13 @@ select方式，既做到了一个线程处理多个客户端连接（文件描�
 - Linux官网或者man：https://man7.org/linux/man-pages/man2/poll.2.html
 - 1997年实现了poll
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/03abfc0de06f483d832ec3497e5ed360.png)
+![在这里插入图片描述](assets/02-Redis篇/03abfc0de06f483d832ec3497e5ed360.png)
 
 * C语言代码
 
 ![在这里插入图片描述](assets/02-Redis篇/9f294a8a956b4d2abe3836fae0bf7647.png)
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/44f507349b2945f1a12f4f3159f1abda.png)
+![在这里插入图片描述](assets/02-Redis篇/44f507349b2945f1a12f4f3159f1abda.png)
 
 **优点**
 1、poll使用pollfd数组来代替select中的bitmap，数组没有1024的限制，可以一次管理更多的client。它和 select 的主要区别就是，去掉了 select 只能监听 1024 个文件描述符的限制。
@@ -9532,7 +9530,7 @@ poll 解决了select缺点中的前两条，其本质原理还是select的方法
 - Linux官网或者man：https://man7.org/linux/man-pages/man7/epoll.7.html
 - 在2002年被大神 Davide Libenzi (戴维德·利本兹)发明出来了
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/90b3b59ef2f049cdbe940466df579894.png)
+![在这里插入图片描述](assets/02-Redis篇/90b3b59ef2f049cdbe940466df579894.png)
 
 ![img](assets/02-Redis篇/917d25fc635d4690956841bdcea37a65.png)
 
@@ -9558,7 +9556,7 @@ poll 解决了select缺点中的前两条，其本质原理还是select的方法
 
 ![在这里插入图片描述](assets/02-Redis篇/a7ca4092c0874a3791e0be248d1da715.png)
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/bdf660950497447aa66a9be79097d84f.png)
+![在这里插入图片描述](assets/02-Redis篇/bdf660950497447aa66a9be79097d84f.png)
 
 **事件通知机制**
 
@@ -9592,13 +9590,13 @@ epoll是现在最先进的IO多路复用器，Redis、Nginx，linux中的Java NI
 
 所谓IO多路复用机制，就是说通过一种机制，可以监视多个描述符，一旦某个描述符就绪（一般是读就绪或写就绪〉，能够通知程序进行相应的读写操作。这种机制的使用需要select 、 pol、epoll来配合。多个连接共用一个阻塞对象，应用程序只需要在一个阻塞对象上等待，无需阻等待所有连接。当某条连接有新的数据可以处理时，操作系统通知应用程序，线程从阻塞状态返回，开始进行业务处理；
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/e52099055f5240318902e42d56468d0c.png)
+![在这里插入图片描述](assets/02-Redis篇/e52099055f5240318902e42d56468d0c.png)
 
 ##### 为什么3个都保留
 
 有的操作系统并不支持epoll等函数,调用顺序是有epoll使用epoll，没有使用poll，再没有使用select。
 
-![在这里插入图片描述](../../../../同步空间/笔记/学习笔记/assets/redis笔记/6531d74458764229bc538c4c5ba225de.png)
+![在这里插入图片描述](assets/02-Redis篇/6531d74458764229bc538c4c5ba225de.png)
 
 ### Redis大厂真实需求落地案例实战
 

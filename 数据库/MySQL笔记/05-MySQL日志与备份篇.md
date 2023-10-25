@@ -65,7 +65,6 @@ mysql> SHOW VARIABLES LIKE "%general%";
 2 rows in set (0.02 sec)
 ```
 
-
 ##### 启动日志
 
 ###### **方式 1 ：永久性方式**

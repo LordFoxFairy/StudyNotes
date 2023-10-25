@@ -105,7 +105,7 @@ UPDATE accounts SET money = money + 50 WHERE NAME = 'BB';
 **步骤1**： START TRANSACTION 或者 BEGIN ，作用是显式开启一个事务。
 
 ```mysql
- BEGIN;
+BEGIN;
 #或者
 START TRANSACTION;
 ```
