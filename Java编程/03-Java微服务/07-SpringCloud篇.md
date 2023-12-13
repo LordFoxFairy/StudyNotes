@@ -3933,7 +3933,7 @@ public class GatewayConfig {
 
 在yaml文件如下修改：
 
-```
+```yaml
 server:
   port: 9527
 
@@ -3972,7 +3972,7 @@ eureka:
 
 在配置类中如下修改：
 
-```
+```java
 @Configuration
 public class GatewayConfig {
 
@@ -4205,7 +4205,7 @@ spring:
             - Age=18, 60
 ```
 
-从这里的演示应该可以看出来，自定义断言与系统自带断言的配置，在yml中只需要使用首部名称，默认忽略类名中的 RoutePredicateFactory。
+从这里的演示应该可以看出来，**自定义断言与系统自带断言的配置，在yml中只需要使用首部名称，默认忽略类名中的 RoutePredicateFactory。**
 
 #### Filter的使用
 
