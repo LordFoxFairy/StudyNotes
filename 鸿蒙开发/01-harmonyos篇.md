@@ -1188,7 +1188,7 @@ struct Index {
 
 - 首先在类上，使用@Observed装饰器
 
-```arkts
+```typescript
 @Observed
 class Person{
   name: string
@@ -1205,7 +1205,7 @@ class Person{
 
 - 使用@ObjectLink，需要将使用的部分封装成组件，如下
 
-```arkts
+```typescript
 @Component
 struct Child{
   @ObjectLink p: Person

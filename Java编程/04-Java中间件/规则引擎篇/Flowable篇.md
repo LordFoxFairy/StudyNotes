@@ -1800,10 +1800,6 @@ sendRejectionMail took 1 milliseconds
 rejectEnd took 1 milliseconds
 ```
 
-## 通用审批流程应用实践
-
-[Springboot整合Flowable并进行一个通用审批流程应用实践_springboot集成flowable启动 审批-CSDN博客](https://blog.csdn.net/jxlhljh/article/details/124466268)
-
 ## Flowable 进阶篇
 
 ### 网关
@@ -2440,21 +2436,541 @@ public void testEventGatewayProcess() {
 
 ### 动态表单
 
+#### 动态表单
+
+##### 基本概念
+
+**动态表单（Dynamic Forms）是指那些能够根据用户输入或其他条件动态改变其内容和结构的表单**。实现动态表单的技术和工具有很多种，以下是一个关于如何使用Java和Flowable（一个BPMN 2.0工作流引擎）来实现动态表单的简单示例。
+
+Flowable提供了一种简单灵活的方式，用来为业务流程中的人工步骤添加表单。由俩种方式使用表单的方法：
+
+1. 使用（由表单设计器创建的）表单定义的内置表单渲染（弊端是每一步都要设计表单）。
+2. 外部表单渲染。使用外部表单渲染时，可以使用表单参数；也可以使用表单key定义，引用外部的、使用自定义的代码解析表单。
+
+动态表单相较于流程变量的优点在于变量是零散的，而表单是完整的，整存整取。
+
+##### 流程设计
+
+![image-20240603225916404](./assets/Flowable篇/image-20240603225916404.png)
+
+![image-20240603182054299](./assets/Flowable篇/image-20240603182054299.png)
+
+**对应任务也要创建相应表单数据。**
+
+```xml
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:flowable="http://flowable.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema" expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://www.flowable.org/processdef" exporter="Flowable Open Source Modeler" exporterVersion="6.8.0">
+    <process id="Process" name="请假流程" isExecutable="true">
+        <documentation>请假流程</documentation>
+        <startEvent id="startEvent1" flowable:formKey="json表单" flowable:formFieldValidation="true">
+            <extensionElements>
+                <flowable:formProperty id="day" name="请假天数" type="long" default="1"/>
+                <flowable:formProperty id="startTime" name="开始时间" type="date" datePattern="MM-dd-yyyy hh:mm"/>
+                <flowable:formProperty id="reason" name="请假理由" type="string"/>
+            </extensionElements>
+        </startEvent>
+        <userTask id="sid-2F09D620-BA96-4D31-8AA1-ACC2E29F7CBA" name="提交请假申请" flowable:formFieldValidation="true">
+            <extensionElements>
+                <flowable:formProperty id="days" name="请假天数" type="long" default="1"/>
+                <flowable:formProperty id="startTime" name="开始时间" type="date" datePattern="MM-dd-yyyy hh:mm"/>
+                <flowable:formProperty id="reason" name="请假理由" type="string"/>
+            </extensionElements>
+        </userTask>
+        <sequenceFlow id="sid-D4A95C09-CA32-4562-92DB-6ECBBAA4840C" sourceRef="startEvent1" targetRef="sid-2F09D620-BA96-4D31-8AA1-ACC2E29F7CBA"/>
+        <endEvent id="sid-EB6A6549-7FB8-4700-AF9F-9C5921E89142"/>
+        <sequenceFlow id="sid-366BDB6C-A29A-4C98-BE82-C72B550B4CA1" sourceRef="sid-2F09D620-BA96-4D31-8AA1-ACC2E29F7CBA" targetRef="sid-EB6A6549-7FB8-4700-AF9F-9C5921E89142"/>
+    </process>
+    <bpmndi:BPMNDiagram id="BPMNDiagram_Process">
+        <bpmndi:BPMNPlane bpmnElement="Process" id="BPMNPlane_Process">
+            <bpmndi:BPMNShape bpmnElement="startEvent1" id="BPMNShape_startEvent1">
+                <omgdc:Bounds height="30.0" width="30.0" x="120.0" y="145.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="sid-2F09D620-BA96-4D31-8AA1-ACC2E29F7CBA" id="BPMNShape_sid-2F09D620-BA96-4D31-8AA1-ACC2E29F7CBA">
+                <omgdc:Bounds height="80.0" width="100.0" x="210.0" y="120.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="sid-EB6A6549-7FB8-4700-AF9F-9C5921E89142" id="BPMNShape_sid-EB6A6549-7FB8-4700-AF9F-9C5921E89142">
+                <omgdc:Bounds height="28.0" width="28.0" x="360.0" y="146.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNEdge bpmnElement="sid-D4A95C09-CA32-4562-92DB-6ECBBAA4840C" id="BPMNEdge_sid-D4A95C09-CA32-4562-92DB-6ECBBAA4840C" flowable:sourceDockerX="15.0" flowable:sourceDockerY="15.0" flowable:targetDockerX="50.0" flowable:targetDockerY="40.0">
+                <omgdi:waypoint x="149.94999883049306" y="160.0"/>
+                <omgdi:waypoint x="210.0" y="160.0"/>
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge bpmnElement="sid-366BDB6C-A29A-4C98-BE82-C72B550B4CA1" id="BPMNEdge_sid-366BDB6C-A29A-4C98-BE82-C72B550B4CA1" flowable:sourceDockerX="50.0" flowable:sourceDockerY="40.0" flowable:targetDockerX="14.0" flowable:targetDockerY="14.0">
+                <omgdi:waypoint x="309.94999999999595" y="160.0"/>
+                <omgdi:waypoint x="360.0" y="160.0"/>
+            </bpmndi:BPMNEdge>
+        </bpmndi:BPMNPlane>
+    </bpmndi:BPMNDiagram>
+</definitions>
+```
+
+##### 案例
+
+1. **`saveFormData(String taskId, Map<String, String> properties)`**：用于保存任务的表单数据，但不会完成任务。可以用于临时保存数据，用户可以在后续继续填写表单。
+2. **`submitTaskFormData(String taskId, Map<String, String> properties)`**：用于提交任务的表单数据，并完成任务。适用于需要在提交表单后立即完成任务的场景。
+
+###### 部署流程定义，启动流程实例
+
+```java
+private void deploy() {
+    // 部署流程定义
+    Deployment deployment = repositoryService.createDeployment()
+        .addClasspathResource("processes/请假流程-并行网关.bpmn20.xml")
+        .deploy();
+    System.out.println("deployment = " + deployment);
+}
+
+private void startFlow(String key) {
+    ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
+        .processDefinitionKey(key)
+        .latestVersion()
+        .singleResult();
+
+    // 启动流程实例
+    // 设置流程变量
+    Map<String, String> variables = new HashMap<>();
+    variables.put("day","3");
+    variables.put("startTime","2024-01-29 00:00");
+    variables.put("reason","去找胡桃了");
+
+    // 启动流程实例
+    ProcessInstance processInstance = formService.submitStartFormData(processDefinition.getId(), variables);
+    System.out.println("processInstance.getProcessInstanceId() = " + processInstance.getProcessInstanceId());
+}
+```
+
+###### 获取表单字段
+
+```java
+private void getStartFormData(String key) {
+    ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
+        .processDefinitionKey(key)
+        .latestVersion()
+        .singleResult();
+    // 获取表单字段
+    StartFormData startFormData = formService.getStartFormData(processDefinition.getId());
+    List<FormProperty> formProperties = startFormData.getFormProperties();
+    for (FormProperty formProperty : formProperties) {
+        String id = formProperty.getId();
+        String name = formProperty.getName();
+        FormType type = formProperty.getType();
+        System.out.println("id = " + id);
+        System.out.println("name = " + name);
+        System.out.println("type.getClass() = " + type.getClass());
+    }
+}
+```
+
+###### 表单信息修改保存与查询
+
+```java
+private void modifyFormData(String key) {
+    // 表单信息修改保存与查询
+    Task task = taskService.createTaskQuery()
+        .processDefinitionKey(key)
+        .singleResult();
+
+    if (task == null) {
+        System.out.println("任务不存在");
+        return;
+    }
+
+    Map<String, String> map = new HashMap<>();
+    map.put("day", "3");
+    map.put("startTime", "2023-01-27 22:42");
+    map.put("reason", "测试以下提交流程");
+    map.put("num", "3");
+    formService.saveFormData(task.getId(), map);
+
+    System.out.println("Form data updated for taskId = " + task.getId());
+
+    TaskFormData taskFormData = formService.getTaskFormData(task.getId());
+    List<FormProperty> formProperties = taskFormData.getFormProperties();
+    System.out.println(formProperties);
+    for (FormProperty formProperty : formProperties) {
+        System.out.println("formProperty.getId() = " + formProperty.getId());
+        System.out.println("formProperty.getName() = " + formProperty.getName());
+        System.out.println("formProperty.getValue() = " + formProperty.getValue());
+    }
+}
+```
+
+###### 完成任务
+
+```java
+private void completeTask(String key) {
+    // 完成任务
+    List<Task> tasks = taskService.createTaskQuery()
+        .processDefinitionKey(key)
+        .orderByTaskCreateTime().desc().list();
+    Task task = tasks.get(0);
+    System.out.println(task.getAssignee() + "-完成任务-" + task.getId());
+    Map<String, String> map = new HashMap<>();
+    map.put("day", "4");
+    map.put("startTime", "2023-01-30 22:42");
+    map.put("reason", "一起去看《深海》吧");
+    map.put("num", "3");
+    formService.submitTaskFormData(task.getId(), map);
+}
+```
+
 #### 外置表单
 
 ##### JSON 表单
 
+集成SpringBoot的Flowable提供了`.form`的自动部署机制。会对保存在`forms`文件夹下的表单自动部署。
+
+###### 配置表单位置和表单后缀名
+
+默认加载对应目录下的表单。
+
+```yaml
+flowable:
+  form:
+    resource-suffixes: "**.form"    # 默认的表单⽂件后缀
+    resource-location: "classpath*:/forms"    # 默认的表单⽂件位置
+```
+
+###### 创建form表单
+
+```json
+{
+  "key":"FormLeaveProcess",
+  "name": "请假流程外部表单",
+  "fields": [
+    {
+      "id": "startTime",
+      "name": "请假开始时间",
+      "type": "date",
+      "required": true,
+      "placeholder": "empty"
+    },
+    {
+      "id": "endTime",
+      "name": "请假结束时间",
+      "type": "date",
+      "required": true,
+      "placeholder": "empty"
+    },
+    {
+      "id": "reason",
+      "name": "请假原因",
+      "type": "string",
+      "required": false,
+      "placeholder": "empty"
+    }
+  ]
+}
+```
+
+###### 绘制流程
+
+![image-20240605182945214](./assets/Flowable篇/image-20240605182945214.png)
+
+```xml
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:flowable="http://flowable.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema" expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://www.flowable.org/processdef" exporter="Flowable Open Source Modeler" exporterVersion="6.8.0">
+    <process id="FormLeaveProcess" name="请假流程" isExecutable="true">
+        <documentation>请假流程</documentation>
+        <startEvent id="startEvent1" flowable:formFieldValidation="true"/>
+        <userTask id="sid-AB0F10C4-38AE-4EA2-9EEA-BC13D76E1301" name="提交申请" flowable:formKey="FormLeaveProcess" flowable:formFieldValidation="true"/>
+        <sequenceFlow id="sid-6668B1FE-CBD0-49C6-B334-F8DAC4AE2E97" sourceRef="startEvent1" targetRef="sid-AB0F10C4-38AE-4EA2-9EEA-BC13D76E1301"/>
+        <userTask id="sid-1BC79BF2-69A4-4E1F-93D2-E615C2A86042" name="经理审批" flowable:formKey="FormLeaveProcess" flowable:formFieldValidation="true"/>
+        <sequenceFlow id="sid-6A86EDF1-75BF-4920-B5C1-4890647AFE3E" sourceRef="sid-AB0F10C4-38AE-4EA2-9EEA-BC13D76E1301" targetRef="sid-1BC79BF2-69A4-4E1F-93D2-E615C2A86042"/>
+        <userTask id="sid-9DC10D64-7502-44E5-83BF-17DF0F5F052B" name="人事审批" flowable:formFieldValidation="true"/>
+        <sequenceFlow id="sid-7A4F6614-FA41-4E00-94A5-398832493FA0" sourceRef="sid-1BC79BF2-69A4-4E1F-93D2-E615C2A86042" targetRef="sid-9DC10D64-7502-44E5-83BF-17DF0F5F052B"/>
+        <endEvent id="sid-4A27F0AA-2E15-434E-AA1C-FA145EF634FB"/>
+        <sequenceFlow id="sid-D5F447A1-0045-4972-BB88-68CEA0133BA0" sourceRef="sid-9DC10D64-7502-44E5-83BF-17DF0F5F052B" targetRef="sid-4A27F0AA-2E15-434E-AA1C-FA145EF634FB"/>
+    </process>
+    <bpmndi:BPMNDiagram id="BPMNDiagram_FormLeaveProcess">
+        <bpmndi:BPMNPlane bpmnElement="FormLeaveProcess" id="BPMNPlane_FormLeaveProcess">
+            <bpmndi:BPMNShape bpmnElement="startEvent1" id="BPMNShape_startEvent1">
+                <omgdc:Bounds height="30.0" width="30.0" x="100.0" y="163.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="sid-AB0F10C4-38AE-4EA2-9EEA-BC13D76E1301" id="BPMNShape_sid-AB0F10C4-38AE-4EA2-9EEA-BC13D76E1301">
+                <omgdc:Bounds height="80.0" width="100.0" x="165.0" y="135.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="sid-1BC79BF2-69A4-4E1F-93D2-E615C2A86042" id="BPMNShape_sid-1BC79BF2-69A4-4E1F-93D2-E615C2A86042">
+                <omgdc:Bounds height="80.0" width="100.0" x="320.0" y="138.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="sid-9DC10D64-7502-44E5-83BF-17DF0F5F052B" id="BPMNShape_sid-9DC10D64-7502-44E5-83BF-17DF0F5F052B">
+                <omgdc:Bounds height="80.0" width="100.0" x="465.0" y="138.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="sid-4A27F0AA-2E15-434E-AA1C-FA145EF634FB" id="BPMNShape_sid-4A27F0AA-2E15-434E-AA1C-FA145EF634FB">
+                <omgdc:Bounds height="28.0" width="28.0" x="610.0" y="164.0"/>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNEdge bpmnElement="sid-D5F447A1-0045-4972-BB88-68CEA0133BA0" id="BPMNEdge_sid-D5F447A1-0045-4972-BB88-68CEA0133BA0" flowable:sourceDockerX="50.0" flowable:sourceDockerY="40.0" flowable:targetDockerX="14.0" flowable:targetDockerY="14.0">
+                <omgdi:waypoint x="564.95" y="178.0"/>
+                <omgdi:waypoint x="610.0" y="178.0"/>
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge bpmnElement="sid-7A4F6614-FA41-4E00-94A5-398832493FA0" id="BPMNEdge_sid-7A4F6614-FA41-4E00-94A5-398832493FA0" flowable:sourceDockerX="50.0" flowable:sourceDockerY="40.0" flowable:targetDockerX="50.0" flowable:targetDockerY="40.0">
+                <omgdi:waypoint x="419.94999999999067" y="178.0"/>
+                <omgdi:waypoint x="464.9999999999807" y="178.0"/>
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge bpmnElement="sid-6668B1FE-CBD0-49C6-B334-F8DAC4AE2E97" id="BPMNEdge_sid-6668B1FE-CBD0-49C6-B334-F8DAC4AE2E97" flowable:sourceDockerX="15.0" flowable:sourceDockerY="15.0" flowable:targetDockerX="50.0" flowable:targetDockerY="40.0">
+                <omgdi:waypoint x="129.94340692927761" y="177.55019845363262"/>
+                <omgdi:waypoint x="164.99999999999906" y="176.4985"/>
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge bpmnElement="sid-6A86EDF1-75BF-4920-B5C1-4890647AFE3E" id="BPMNEdge_sid-6A86EDF1-75BF-4920-B5C1-4890647AFE3E" flowable:sourceDockerX="50.0" flowable:sourceDockerY="40.0" flowable:targetDockerX="50.0" flowable:targetDockerY="40.0">
+                <omgdi:waypoint x="264.9499999999882" y="175.0"/>
+                <omgdi:waypoint x="292.5" y="175.0"/>
+                <omgdi:waypoint x="292.5" y="178.0"/>
+                <omgdi:waypoint x="319.9999999999603" y="178.0"/>
+            </bpmndi:BPMNEdge>
+        </bpmndi:BPMNPlane>
+    </bpmndi:BPMNDiagram>
+</definitions>
+```
+
+###### 部署流程与表单信息
+
+```java
+@Autowired
+private RepositoryService repositoryService;
+
+@Autowired
+private FormRepositoryService formRepositoryService;
+
+@Test
+void deployFormProcess() {
+    // 1.部署流程
+    Deployment deploy = repositoryService.createDeployment()
+        .addClasspathResource("processes/FormLeaveProcess.bpmn20.xml")
+        .name("外部表单请假流程")
+        .deploy();
+    // 2.部署表单
+    formRepositoryService.createDeployment()
+        .addClasspathResource("forms/FormLeaveProcess.form")
+        .name("请假流程外部表单")
+        .parentDeploymentId(deploy.getId())
+        .deploy();
+}
+```
+
+###### 启动流程
+
+```java
+@Autowired
+private RuntimeService runtimeService;
+
+@Test
+void startProcess() {
+
+    // 查询最新版本的流程定义
+    ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
+        .processDefinitionKey("FormLeaveProcess")
+        .latestVersion().singleResult();
+
+    String processDefinitionId = processDefinition.getId();
+    ProcessInstance processInstance = runtimeService.startProcessInstanceWithForm(processDefinitionId, "表单请假流程outcome", null, "胡桃的请假流程");
+    System.out.println("processInstance.getId() = " + processInstance.getId());
+}
+```
+
+###### 完成任务
+
+```java
+@Test
+void completeFormTask() {
+
+    // 查询最新版本的流程定义
+    ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
+        .processDefinitionKey("FormLeaveProcess")
+        .latestVersion().singleResult();
+
+    Map<String, Object> variables = new HashMap<>();
+    variables.put("startTime", "20221111");
+    variables.put("endTime", "20231110");
+    variables.put("reason", "活着不是为了工作，工作是为了活得更有意义");
+
+    Task task = taskService.createTaskQuery()
+        .processDefinitionId(processDefinition.getId())
+        .singleResult();
+
+    String taskId = task.getId();
+
+    FormInfo formInfo = taskService.getTaskFormModel(task.getId());
+    String formDefinitionId = formInfo.getId();
+    taskService.completeTaskWithForm(taskId, formDefinitionId, "胡桃", variables);
+}
+```
+
+###### 获取表单信息
+
+```java
+@Test
+void getTaskFormData() {
+
+    // 查询最新版本的流程定义
+    ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
+        .processDefinitionKey("FormLeaveProcess")
+        .latestVersion().singleResult();
+
+    Task task = taskService.createTaskQuery()
+        .processDefinitionId(processDefinition.getId())
+        .singleResult();
+
+    FormInfo taskFormModel = taskService.getTaskFormModel(task.getId());
+    System.out.println(taskFormModel.getId() + "-" + taskFormModel.getName() + "-" + taskFormModel.getKey());
+    SimpleFormModel simpleFormModel = (SimpleFormModel)taskFormModel.getFormModel();
+    List<FormField> fields = simpleFormModel.getFields();
+    for (FormField field : fields) {
+        System.out.println(field.getId() + ":" + field.getType() + ":" + field.getName() + ":" + field.getValue());
+    }
+}
+```
+
 ##### HTML表单
 
-##### 注意事项
+###### 绘制流程
 
-#### 任务回退
+![image-20240605185855436](./assets/Flowable篇/image-20240605185855436.png)
 
-##### 串行任务
+###### html表单
 
-##### 并行任务
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>请假流程外部表单</title>
+    </head>
+    <body>
+        <form id="FormLeaveProcess">
+            <div>
+                <label for="startTime">请假开始时间</label>
+                <input type="date" id="startTime" name="startTime" required>
+            </div>
+            <div>
+                <label for="endTime">请假结束时间</label>
+                <input type="date" id="endTime" name="endTime" required>
+            </div>
+            <div>
+                <label for="reason">请假原因</label>
+                <input type="text" id="reason" name="reason" placeholder="empty">
+            </div>
+            <div>
+                <button type="submit">提交</button>
+            </div>
+        </form>
+    </body>
+</html>
+```
 
-##### 子流程回退
+###### 部署流程与表单信息
+
+```java
+@Test
+void deploy() {
+    DeploymentBuilder builder = repositoryService.createDeployment()
+        .category("HX-FORM-TYPE")
+        .name("HTML-FORM")
+        .key("FormLeaveProcess3")
+        .addClasspathResource("processes/FormLeaveProcess.bpmn20.xml");
+
+    InputStream is = this.getClass().getClassLoader().getResourceAsStream("forms/FormLeaveProcess.html");
+    // 注意！这里必须指定名称与流程定义的名称相同！否则将会报错
+    // Form with formKey 'xxx.html' does not exist
+    // 指定表单的名称与流程定义文件中的一致。
+    builder.addInputStream("FormLeaveProcess.html", is);
+
+    Deployment deployment = builder.deploy();
+    System.out.println("deployment.getId() = " + deployment.getId());
+}
+```
+
+###### 获取表单信息
+
+```java
+@Autowired
+FormService formService;
+
+@Test
+void getStartFormContent() {
+    ProcessDefinition pd = repositoryService.createProcessDefinitionQuery()
+        .latestVersion().processDefinitionKey("FormLeaveProcess3").singleResult();
+    System.out.println("pd = " + pd);
+    String startFormKey = formService.getStartFormKey(pd.getId());
+    System.out.println("startFormKey = " + startFormKey);
+    String renderedStartForm = (String) formService.getRenderedStartForm(pd.getId());
+    System.out.println("renderedStartForm = " + renderedStartForm);
+}
+
+@Test
+void getFormContent2() throws IOException {
+    ProcessDefinition pd = repositoryService.createProcessDefinitionQuery()
+        .latestVersion().processDefinitionKey("FormLeaveProcess3").singleResult();
+    List<String> deploymentResourceNames = repositoryService.getDeploymentResourceNames(pd.getDeploymentId());
+    byte[] bt = new byte[1024];
+    for (String name : deploymentResourceNames) {
+        System.out.println("deploymentResourceName = " + name);
+        try (InputStream is = repositoryService.getResourceAsStream(pd.getDeploymentId(), name)) {
+            while (is.read(bt) != -1) {
+                System.out.print(new String(bt));
+            }
+        }
+    }
+}
+```
+
+###### 启动流程
+
+```java
+@Test
+void startFlow() {
+    ProcessDefinition pd = repositoryService.createProcessDefinitionQuery()
+        .processDefinitionKey("FormLeaveProcess3")
+        .latestVersion().singleResult();
+    Map<String, String> variables = new HashMap<>();
+    variables.put("startTime", "20221111");
+    variables.put("endTime", "20231110");
+    variables.put("reason", "活着不是为了工作，工作是为了活得更有意义");
+    ProcessInstance pi = formService.submitStartFormData(pd.getId(), variables);
+    System.out.println("pi.getId() = " + pi.getId());
+}
+```
+
+###### 完成任务
+
+```java
+@Test
+void completeTask1() {
+    ProcessDefinition pd = repositoryService.createProcessDefinitionQuery()
+        .processDefinitionKey("FormLeaveProcess3").latestVersion().singleResult();
+    Task task = taskService.createTaskQuery()
+        .processDefinitionId(pd.getId())
+        .singleResult();
+    Map<String, String> variables = new HashMap<>();
+    variables.put("startTime", "20221111");
+    variables.put("endTime", "20231110");
+    variables.put("reason", "活着不是为了工作，工作是为了活得更有意义");
+    formService.submitTaskFormData(task.getId(), variables);
+}
+```
+
+###### 获取任务表单信息
+
+```java
+@Test
+void getTaskFormContent() {
+    ProcessDefinition pd = repositoryService.createProcessDefinitionQuery()
+        .processDefinitionKey("FormLeaveProcess3").latestVersion().singleResult();
+    Task task = taskService.createTaskQuery()
+        .processDefinitionId(pd.getId())
+        .singleResult();
+    String renderedTaskForm = (String) formService.getRenderedTaskForm(task.getId());
+    System.out.println("renderedTaskForm = " + renderedTaskForm);
+}
+```
+
+### 任务回退驳回
+
+#### 串行任务
+
+#### 并行任务
+
+#### 子流程回退
+
+#### 任务撤销
 
 [Flowable进阶学习（八）动态表单；外置表单（JSON表单、HTML表单及踩坑记录）；任务回退（串行任务、并行任务、子流程回退）_flowable 表单-CSDN博客](https://blog.csdn.net/qq_40366738/article/details/128768412)
 
@@ -2472,6 +2988,24 @@ public void testEventGatewayProcess() {
 
 [Flowable进阶学习（四）任务分配与流程变量_flowable 流程表达式-CSDN博客](https://blog.csdn.net/qq_40366738/article/details/128746821)
 
-### 全局事件监听
+### 监听器
+
+#### 执行监听器
+
+#### 任务监听器
+
+#### 全局监听器
 
 [SpringBoot整合Flowable工作流-3（全局事件监听）_基于spring事件监听实现工作流-CSDN博客](https://blog.csdn.net/u010365819/article/details/120823612)
+
+### 多人会签
+
+### 子流程
+
+### 任务专题
+
+### 事件专题
+
+## 通用审批流程应用实践
+
+[Springboot整合Flowable并进行一个通用审批流程应用实践_springboot集成flowable启动 审批-CSDN博客](https://blog.csdn.net/jxlhljh/article/details/124466268)
